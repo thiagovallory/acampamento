@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Paper,
   Table,
@@ -21,9 +21,7 @@ import {
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
-  Edit as EditIcon,
-  Check as CheckIcon,
-  Close as CloseIcon
+  Search as SearchIcon
 } from '@mui/icons-material';
 import { useApp } from '../context/AppContext';
 
@@ -33,6 +31,7 @@ export const ProductList: React.FC = () => {
   const [editValue, setEditValue] = useState<string>('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { 
@@ -47,13 +46,23 @@ export const ProductList: React.FC = () => {
     return 'error';
   };
 
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm) return products;
+    
+    const lowerSearch = searchTerm.toLowerCase();
+    return products.filter(product => 
+      product.name.toLowerCase().includes(lowerSearch) ||
+      (product.barcode && product.barcode.toLowerCase().includes(lowerSearch))
+    );
+  }, [products, searchTerm]);
+
   const handleFieldClick = (productId: string, field: string, currentValue: any) => {
     setEditingField({ productId, field });
     
-    if (field === 'price') {
-      setEditValue(currentValue.toString());
-    } else if (field === 'stock') {
-      setEditValue(currentValue.toString());
+    if (field === 'price' || field === 'costPrice') {
+      setEditValue(currentValue ? currentValue.toString() : '');
+    } else if (field === 'stock' || field === 'purchasedQuantity') {
+      setEditValue(currentValue ? currentValue.toString() : '');
     } else {
       setEditValue(currentValue || '');
     }
@@ -65,20 +74,28 @@ export const ProductList: React.FC = () => {
     const { productId, field } = editingField;
     let value: any = editValue.trim();
     
-    if (field === 'price') {
-      const numValue = parseFloat(value);
-      if (isNaN(numValue) || numValue < 0) {
-        alert('Preço deve ser um número válido maior ou igual a zero.');
-        return;
+    if (field === 'price' || field === 'costPrice') {
+      if (value === '') {
+        value = field === 'costPrice' ? undefined : 0;
+      } else {
+        const numValue = parseFloat(value);
+        if (isNaN(numValue) || numValue < 0) {
+          alert('Preço deve ser um número válido maior ou igual a zero.');
+          return;
+        }
+        value = numValue;
       }
-      value = numValue;
-    } else if (field === 'stock') {
-      const numValue = parseInt(value);
-      if (isNaN(numValue) || numValue < 0) {
-        alert('Estoque deve ser um número inteiro maior ou igual a zero.');
-        return;
+    } else if (field === 'stock' || field === 'purchasedQuantity') {
+      if (value === '') {
+        value = field === 'purchasedQuantity' ? undefined : 0;
+      } else {
+        const numValue = parseInt(value);
+        if (isNaN(numValue) || numValue < 0) {
+          alert('Quantidade deve ser um número inteiro maior ou igual a zero.');
+          return;
+        }
+        value = numValue;
       }
-      value = numValue;
     } else if (field === 'name' && !value) {
       alert('Nome do produto não pode estar vazio.');
       return;
@@ -118,193 +135,315 @@ export const ProductList: React.FC = () => {
     return (
       <Box sx={{ 
         display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: 300,
-        bgcolor: 'background.paper',
-        borderRadius: 2,
-        p: 3
+        flexDirection: 'column',
+        gap: 2
       }}>
-        <Typography variant="body1" color="text.secondary">
-          Nenhum produto cadastrado ainda
-        </Typography>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: 300,
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          p: 3
+        }}>
+          <Typography variant="body1" color="text.secondary">
+            Nenhum produto cadastrado ainda
+          </Typography>
+        </Box>
       </Box>
     );
   }
 
   return (
     <>
-    <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
-      <Table sx={{ minWidth: 650 }}>
-        <TableHead>
-          <TableRow sx={{ bgcolor: 'surface.variant' }}>
-            <TableCell sx={{ fontWeight: 600, width: '30%' }}>Produto</TableCell>
-            <TableCell sx={{ fontWeight: 600, width: '25%' }}>Código de Barras</TableCell>
-            <TableCell sx={{ fontWeight: 600, width: '15%' }}>Preço</TableCell>
-            <TableCell sx={{ fontWeight: 600, width: '20%' }}>Estoque</TableCell>
-            <TableCell sx={{ fontWeight: 600, width: '10%' }}>Ações</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {products.map((product) => (
-            <TableRow
-              key={product.id}
-              sx={{ 
-                '&:last-child td, &:last-child th': { border: 0 },
-                '&:hover': { bgcolor: 'action.hover' }
-              }}
-            >
-              <TableCell component="th" scope="row" sx={{ width: '30%' }}>
-                {editingField?.productId === product.id && editingField?.field === 'name' ? (
-                  <TextField
-                    size="small"
-                    fullWidth
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onBlur={handleFieldSave}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') handleFieldSave();
-                      if (e.key === 'Escape') handleFieldCancel();
-                    }}
-                    autoFocus
-                    variant="standard"
-                    sx={{ 
-                      '& .MuiInput-root': { 
-                        fontSize: '0.875rem',
-                        padding: '2px 0'
-                      }
-                    }}
-                  />
-                ) : (
-                  <Typography 
-                    variant="body2" 
-                    fontWeight={500}
-                    onClick={() => handleFieldClick(product.id, 'name', product.name)}
-                    sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, p: 0.5, borderRadius: 1, display: 'inline-block' }}
-                  >
-                    {product.name}
-                  </Typography>
-                )}
-              </TableCell>
-              <TableCell sx={{ width: '25%' }}>
-                {editingField?.productId === product.id && editingField?.field === 'barcode' ? (
-                  <TextField
-                    size="small"
-                    fullWidth
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onBlur={handleFieldSave}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') handleFieldSave();
-                      if (e.key === 'Escape') handleFieldCancel();
-                    }}
-                    placeholder="Código de barras"
-                    autoFocus
-                    variant="standard"
-                    sx={{ 
-                      '& .MuiInput-root': { 
-                        fontSize: '0.875rem',
-                        padding: '2px 0'
-                      }
-                    }}
-                  />
-                ) : (
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    onClick={() => handleFieldClick(product.id, 'barcode', product.barcode)}
-                    sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, p: 0.5, borderRadius: 1, display: 'inline-block' }}
-                  >
-                    {product.barcode || '-'}
-                  </Typography>
-                )}
-              </TableCell>
-              <TableCell sx={{ width: '15%' }}>
-                {editingField?.productId === product.id && editingField?.field === 'price' ? (
-                  <TextField
-                    size="small"
-                    fullWidth
-                    type="number"
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onBlur={handleFieldSave}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') handleFieldSave();
-                      if (e.key === 'Escape') handleFieldCancel();
-                    }}
-                    autoFocus
-                    variant="standard"
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">R$</InputAdornment>
-                    }}
-                    sx={{ 
-                      '& .MuiInput-root': { 
-                        fontSize: '0.875rem',
-                        padding: '2px 0'
-                      }
-                    }}
-                  />
-                ) : (
-                  <Typography 
-                    variant="body2" 
-                    fontWeight={500}
-                    onClick={() => handleFieldClick(product.id, 'price', product.price)}
-                    sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, p: 0.5, borderRadius: 1, display: 'inline-block' }}
-                  >
-                    {formatCurrency(product.price)}
-                  </Typography>
-                )}
-              </TableCell>
-              <TableCell sx={{ width: '20%' }}>
-                {editingField?.productId === product.id && editingField?.field === 'stock' ? (
-                  <TextField
-                    size="small"
-                    fullWidth
-                    type="number"
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onBlur={handleFieldSave}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') handleFieldSave();
-                      if (e.key === 'Escape') handleFieldCancel();
-                    }}
-                    autoFocus
-                    variant="standard"
-                    sx={{ 
-                      '& .MuiInput-root': { 
-                        fontSize: '0.875rem',
-                        padding: '2px 0'
-                      }
-                    }}
-                  />
-                ) : (
-                  <Box 
-                    onClick={() => handleFieldClick(product.id, 'stock', product.stock)}
-                    sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, p: 0.5, borderRadius: 1, display: 'inline-block' }}
-                  >
-                    <Chip 
-                      label={`${product.stock} unidades`}
-                      color={getStockColor(product.stock)}
-                      size="small"
-                      sx={{ borderRadius: 2 }}
-                    />
-                  </Box>
-                )}
-              </TableCell>
-              <TableCell>
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => handleDeleteClick(product.id)}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </TableCell>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Campo de busca */}
+      <TextField
+        placeholder="Buscar por nome ou código de barras..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        variant="outlined"
+        fullWidth
+        size="small"
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon />
+            </InputAdornment>
+          ),
+        }}
+        sx={{
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 2
+          }
+        }}
+      />
+
+      <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+        <Table sx={{ minWidth: 650 }}>
+          <TableHead>
+            <TableRow sx={{ bgcolor: 'surface.variant' }}>
+              <TableCell sx={{ fontWeight: 600, width: '15%' }}>Código</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: '25%' }}>Produto</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: '10%' }}>Qtd Comprada</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: '12%' }}>Custo</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: '12%' }}>Preço</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: '16%' }}>Estoque</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: '10%' }}>Ações</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+          </TableHead>
+          <TableBody>
+            {filteredProducts.map((product) => (
+              <TableRow
+                key={product.id}
+                sx={{ 
+                  '&:last-child td, &:last-child th': { border: 0 },
+                  '&:hover': { bgcolor: 'action.hover' }
+                }}
+              >
+                {/* Código de Barras */}
+                <TableCell sx={{ width: '15%' }}>
+                  {editingField?.productId === product.id && editingField?.field === 'barcode' ? (
+                    <TextField
+                      size="small"
+                      fullWidth
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={handleFieldSave}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') handleFieldSave();
+                        if (e.key === 'Escape') handleFieldCancel();
+                      }}
+                      autoFocus
+                      variant="standard"
+                      sx={{ 
+                        '& .MuiInput-root': { 
+                          fontSize: '0.875rem',
+                          padding: '2px 0'
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      onClick={() => handleFieldClick(product.id, 'barcode', product.barcode)}
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, p: 0.5, borderRadius: 1, display: 'inline-block' }}
+                    >
+                      {product.barcode || '-'}
+                    </Typography>
+                  )}
+                </TableCell>
+
+                {/* Nome do Produto */}
+                <TableCell component="th" scope="row" sx={{ width: '25%' }}>
+                  {editingField?.productId === product.id && editingField?.field === 'name' ? (
+                    <TextField
+                      size="small"
+                      fullWidth
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={handleFieldSave}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') handleFieldSave();
+                        if (e.key === 'Escape') handleFieldCancel();
+                      }}
+                      autoFocus
+                      variant="standard"
+                      sx={{ 
+                        '& .MuiInput-root': { 
+                          fontSize: '0.875rem',
+                          padding: '2px 0'
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Typography 
+                      variant="body2" 
+                      fontWeight={500}
+                      onClick={() => handleFieldClick(product.id, 'name', product.name)}
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, p: 0.5, borderRadius: 1, display: 'inline-block' }}
+                    >
+                      {product.name}
+                    </Typography>
+                  )}
+                </TableCell>
+
+                {/* Quantidade Comprada */}
+                <TableCell sx={{ width: '10%' }}>
+                  {editingField?.productId === product.id && editingField?.field === 'purchasedQuantity' ? (
+                    <TextField
+                      size="small"
+                      fullWidth
+                      type="number"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={handleFieldSave}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') handleFieldSave();
+                        if (e.key === 'Escape') handleFieldCancel();
+                      }}
+                      autoFocus
+                      variant="standard"
+                      sx={{ 
+                        '& .MuiInput-root': { 
+                          fontSize: '0.875rem',
+                          padding: '2px 0'
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      onClick={() => handleFieldClick(product.id, 'purchasedQuantity', product.purchasedQuantity)}
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, p: 0.5, borderRadius: 1, display: 'inline-block' }}
+                    >
+                      {product.purchasedQuantity || '-'}
+                    </Typography>
+                  )}
+                </TableCell>
+
+                {/* Preço de Custo */}
+                <TableCell sx={{ width: '12%' }}>
+                  {editingField?.productId === product.id && editingField?.field === 'costPrice' ? (
+                    <TextField
+                      size="small"
+                      fullWidth
+                      type="number"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={handleFieldSave}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') handleFieldSave();
+                        if (e.key === 'Escape') handleFieldCancel();
+                      }}
+                      autoFocus
+                      variant="standard"
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">R$</InputAdornment>
+                      }}
+                      sx={{ 
+                        '& .MuiInput-root': { 
+                          fontSize: '0.875rem',
+                          padding: '2px 0'
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      onClick={() => handleFieldClick(product.id, 'costPrice', product.costPrice)}
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, p: 0.5, borderRadius: 1, display: 'inline-block' }}
+                    >
+                      {product.costPrice ? formatCurrency(product.costPrice) : '-'}
+                    </Typography>
+                  )}
+                </TableCell>
+
+                {/* Preço de Venda */}
+                <TableCell sx={{ width: '12%' }}>
+                  {editingField?.productId === product.id && editingField?.field === 'price' ? (
+                    <TextField
+                      size="small"
+                      fullWidth
+                      type="number"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={handleFieldSave}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') handleFieldSave();
+                        if (e.key === 'Escape') handleFieldCancel();
+                      }}
+                      autoFocus
+                      variant="standard"
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">R$</InputAdornment>
+                      }}
+                      sx={{ 
+                        '& .MuiInput-root': { 
+                          fontSize: '0.875rem',
+                          padding: '2px 0'
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Typography 
+                      variant="body2" 
+                      fontWeight={500}
+                      onClick={() => handleFieldClick(product.id, 'price', product.price)}
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, p: 0.5, borderRadius: 1, display: 'inline-block' }}
+                    >
+                      {formatCurrency(product.price)}
+                    </Typography>
+                  )}
+                </TableCell>
+
+                {/* Estoque */}
+                <TableCell sx={{ width: '16%' }}>
+                  {editingField?.productId === product.id && editingField?.field === 'stock' ? (
+                    <TextField
+                      size="small"
+                      fullWidth
+                      type="number"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={handleFieldSave}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') handleFieldSave();
+                        if (e.key === 'Escape') handleFieldCancel();
+                      }}
+                      autoFocus
+                      variant="standard"
+                      sx={{ 
+                        '& .MuiInput-root': { 
+                          fontSize: '0.875rem',
+                          padding: '2px 0'
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Box 
+                      onClick={() => handleFieldClick(product.id, 'stock', product.stock)}
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, p: 0.5, borderRadius: 1, display: 'inline-block' }}
+                    >
+                      <Chip 
+                        label={`${product.stock} unidades`}
+                        color={getStockColor(product.stock)}
+                        size="small"
+                        sx={{ borderRadius: 2 }}
+                      />
+                    </Box>
+                  )}
+                </TableCell>
+
+                {/* Ações */}
+                <TableCell>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => handleDeleteClick(product.id)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        {filteredProducts.length === 0 && products.length > 0 && (
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Nenhum produto encontrado com "{searchTerm}"
+            </Typography>
+          </Box>
+        )}
+      </TableContainer>
+    </Box>
     
     <Dialog
       open={deleteDialogOpen}
