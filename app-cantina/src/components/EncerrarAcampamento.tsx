@@ -38,7 +38,7 @@ interface EncerrarAcampamentoProps {
 type BalanceAction = 'saque' | 'missionario';
 
 export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, onClose }) => {
-  const { people, products, encerrarAcampamento } = useApp();
+  const { people, products, branding, encerrarAcampamento } = useApp();
   const [step, setStep] = useState<'confirm' | 'balance-choice' | 'processing' | 'completed'>('confirm');
   const [balanceAction, setBalanceAction] = useState<BalanceAction>('saque');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -137,7 +137,8 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
     });
     
     const detailedCSV = Papa.unparse(detailedPeopleData);
-    downloadCSV(detailedCSV, `encerramento-pessoas-completo-${timestamp}.csv`);
+    const orgSlug = branding.organizationName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    downloadCSV(detailedCSV, `${orgSlug}-encerramento-pessoas-completo-${timestamp}.csv`);
     reportsGenerated.push(`Pessoas Completo (${detailedPeopleData.length} registros)`);
 
     // 2. Produtos finais
@@ -150,7 +151,7 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
     }));
     
     const productsCSV = Papa.unparse(productsData);
-    downloadCSV(productsCSV, `encerramento-produtos-${timestamp}.csv`);
+    downloadCSV(productsCSV, `${orgSlug}-encerramento-produtos-${timestamp}.csv`);
     reportsGenerated.push(`Produtos (${productsData.length} itens)`);
 
     // 3. Resumo de vendas
@@ -201,7 +202,7 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
     ];
 
     const salesCSV = Papa.unparse(salesSummaryData);
-    downloadCSV(salesCSV, `encerramento-resumo-vendas-${timestamp}.csv`);
+    downloadCSV(salesCSV, `${orgSlug}-encerramento-resumo-vendas-${timestamp}.csv`);
     reportsGenerated.push(`Resumo de Vendas (R$ ${grandTotal.toFixed(2)})`);
   };
 
@@ -211,14 +212,33 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
     const margin = 10;
     let yPosition = 20;
 
-    // Header principal
+    // Header principal com branding
+    let currentY = yPosition;
+    
+    // Adicionar logo se configurado
+    if (branding.showLogo && branding.logoUrl) {
+      try {
+        // Para logos locais, vamos adicionar um placeholder por enquanto
+        // O jsPDF não consegue carregar imagens facilmente sem conversão para base64
+        doc.setFontSize(14);
+        doc.text(`🏢 ${branding.organizationName}`, margin, currentY);
+        currentY += 15;
+      } catch (error) {
+        console.warn('Não foi possível carregar o logo:', error);
+      }
+    } else {
+      doc.setFontSize(14);
+      doc.text(`🏢 ${branding.organizationName}`, margin, currentY);
+      currentY += 15;
+    }
+    
     doc.setFontSize(18);
-    doc.text('RELATÓRIO FINAL DE ENCERRAMENTO', margin, yPosition);
+    doc.text('RELATÓRIO FINAL DE ENCERRAMENTO', margin, currentY);
     doc.setFontSize(12);
-    yPosition += 10;
-    doc.text(`Data: ${timestamp}`, margin, yPosition);
-    doc.text(`Destino dos Saldos: ${balanceAction === 'saque' ? 'Saque' : 'Doação para Missionário'}`, margin, yPosition + 10);
-    yPosition += 25;
+    currentY += 10;
+    doc.text(`Data: ${timestamp}`, margin, currentY);
+    doc.text(`Destino dos Saldos: ${balanceAction === 'saque' ? 'Saque' : 'Doação para Missionário'}`, margin, currentY + 10);
+    yPosition = currentY + 25;
 
     // Calcular estatísticas de vendas para o resumo
     const salesStats = new Map<string, { quantity: number; total: number; name: string; price: number }>();
@@ -390,7 +410,8 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
     });
 
     // Salvar PDF
-    const fileName = `encerramento-final-${new Date().toISOString().split('T')[0]}.pdf`;
+    const orgSlug = branding.organizationName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const fileName = `${orgSlug}-encerramento-final-${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
     reportsGenerated.push(`Relatório Final PDF`);
   };

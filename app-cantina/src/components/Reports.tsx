@@ -40,7 +40,7 @@ type ReportType = 'people-simple' | 'people-detailed' | 'products' | 'sales-summ
 type OutputFormat = 'csv' | 'pdf';
 
 export const Reports: React.FC<ReportsProps> = ({ open, onClose }) => {
-  const { people, products } = useApp();
+  const { people, products, branding } = useApp();
   const [selectedReport, setSelectedReport] = useState<ReportType>('people-simple');
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('csv');
 
@@ -54,7 +54,8 @@ export const Reports: React.FC<ReportsProps> = ({ open, onClose }) => {
     }));
 
     const csv = Papa.unparse(csvData);
-    downloadCSV(csv, 'pessoas-simples.csv');
+    const orgSlug = branding.organizationName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    downloadCSV(csv, `${orgSlug}-pessoas-simples.csv`);
   };
 
   const generatePeopleDetailedCSV = () => {
@@ -89,7 +90,8 @@ export const Reports: React.FC<ReportsProps> = ({ open, onClose }) => {
     });
 
     const csv = Papa.unparse(csvData);
-    downloadCSV(csv, 'pessoas-detalhadas.csv');
+    const orgSlug = branding.organizationName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    downloadCSV(csv, `${orgSlug}-pessoas-detalhadas.csv`);
   };
 
   const generateProductsCSV = () => {
@@ -102,7 +104,8 @@ export const Reports: React.FC<ReportsProps> = ({ open, onClose }) => {
     }));
 
     const csv = Papa.unparse(csvData);
-    downloadCSV(csv, 'produtos.csv');
+    const orgSlug = branding.organizationName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    downloadCSV(csv, `${orgSlug}-produtos.csv`);
   };
 
   const generateSalesSummaryCSV = () => {
@@ -149,20 +152,23 @@ export const Reports: React.FC<ReportsProps> = ({ open, onClose }) => {
     });
 
     const csv = Papa.unparse(csvData);
-    downloadCSV(csv, 'resumo-vendas.csv');
+    const orgSlug = branding.organizationName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    downloadCSV(csv, `${orgSlug}-resumo-vendas.csv`);
   };
 
   const generatePDF = () => {
     const doc = new jsPDF();
     const margin = 20;
 
-    // Header
+    // Header com branding
+    doc.setFontSize(14);
+    doc.text(`🏢 ${branding.organizationName}`, margin, 25);
     doc.setFontSize(18);
-    doc.text('Sistema de Cantina - Relatório', margin, 25);
+    doc.text('Sistema de Cantina - Relatório', margin, 40);
     doc.setFontSize(12);
-    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, margin, 35);
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, margin, 50);
 
-    let yPosition = 50;
+    let yPosition = 65;
 
     switch (selectedReport) {
       case 'people-simple':
@@ -312,7 +318,8 @@ export const Reports: React.FC<ReportsProps> = ({ open, onClose }) => {
     }
 
     // Save PDF
-    const fileName = `relatorio-${selectedReport}-${new Date().toISOString().split('T')[0]}.pdf`;
+    const orgSlug = branding.organizationName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const fileName = `${orgSlug}-relatorio-${selectedReport}-${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
   };
 
