@@ -99,8 +99,21 @@ export const ProductList: React.FC = () => {
     } else if (field === 'name' && !value) {
       alert('Nome do produto não pode estar vazio.');
       return;
-    } else if (field === 'barcode' && value === '') {
-      value = undefined;
+    } else if (field === 'barcode') {
+      if (value === '') {
+        value = undefined;
+      } else {
+        // Verificar se já existe outro produto com este código de barras
+        const existingProduct = products.find(p => 
+          p.id !== productId && // Não verificar o próprio produto
+          p.barcode === value
+        );
+        
+        if (existingProduct) {
+          alert(`Código de barras "${value}" já está sendo usado pelo produto "${existingProduct.name}". Cada produto deve ter um código único.`);
+          return;
+        }
+      }
     }
     
     updateProduct(productId, { [field]: value });

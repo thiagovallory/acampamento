@@ -25,7 +25,7 @@ interface ProductFormProps {
 }
 
 export const ProductForm: React.FC<ProductFormProps> = ({ onClose }) => {
-  const { addProduct } = useApp();
+  const { addProduct, products } = useApp();
   const [name, setName] = useState('');
   const [barcode, setBarcode] = useState('');
   const [price, setPrice] = useState('');
@@ -37,17 +37,31 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onClose }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name && price && stock) {
-      addProduct({
-        name,
-        barcode: barcode || undefined,
-        price: parseFloat(price),
-        stock: parseInt(stock),
-        costPrice: costPrice ? parseFloat(costPrice) : undefined,
-        purchasedQuantity: purchasedQuantity ? parseInt(purchasedQuantity) : undefined
-      });
-      onClose();
+    
+    // Validar campos obrigatórios
+    if (!name || !price || !stock) {
+      alert('Nome, preço e estoque são obrigatórios.');
+      return;
     }
+    
+    // Validar código de barras único (se fornecido)
+    if (barcode && barcode.trim()) {
+      const existingProduct = products.find(p => p.barcode === barcode.trim());
+      if (existingProduct) {
+        alert(`Código de barras "${barcode}" já está sendo usado pelo produto "${existingProduct.name}". Cada produto deve ter um código único.`);
+        return;
+      }
+    }
+    
+    addProduct({
+      name,
+      barcode: barcode || undefined,
+      price: parseFloat(price),
+      stock: parseInt(stock),
+      costPrice: costPrice ? parseFloat(costPrice) : undefined,
+      purchasedQuantity: purchasedQuantity ? parseInt(purchasedQuantity) : undefined
+    });
+    onClose();
   };
 
   const handleScan = (scannedBarcode: string) => {
