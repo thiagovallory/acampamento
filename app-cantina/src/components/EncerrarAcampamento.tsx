@@ -208,8 +208,8 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
   const generateFinalReportsPDF = async (reportsGenerated: string[]) => {
     const doc = new jsPDF();
     const timestamp = new Date().toLocaleDateString('pt-BR');
-    const margin = 20;
-    let yPosition = 25;
+    const margin = 10;
+    let yPosition = 20;
 
     // Header principal
     doc.setFontSize(18);
@@ -267,7 +267,6 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
       ['Total de Vendas Realizadas', `R$ ${grandTotalSales.toFixed(2)}`],
       ['Total de Lucro Calculado', grandTotalProfit > 0 ? `R$ ${grandTotalProfit.toFixed(2)}` : 'N/A'],
       ['Total de Produtos', products.length.toString()],
-      ['Produtos em Estoque', products.filter(p => p.stock > 0).length.toString()],
       ['Destino dos Saldos', balanceAction === 'saque' ? 'Saque' : 'Doação Missionário']
     ];
 
@@ -336,13 +335,17 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
       const costPrice = product.costPrice || 0;
       const profit = costPrice > 0 ? (product.price - costPrice) * quantitySum : 0;
       
+      // Calcular quantidade não vendida (sobrou)
+      const purchasedQuantity = product.purchasedQuantity || 0;
+      const remainingQuantity = purchasedQuantity - quantitySum;
+      
       productsData.push([
         product.barcode || '-',
         product.name,
         quantitySum.toString(),
         `R$ ${totalSum.toFixed(2)}`,
         `R$ ${product.price.toFixed(2)}`,
-        product.stock.toString(),
+        remainingQuantity > 0 ? remainingQuantity.toString() : '0',
         costPrice > 0 ? `R$ ${profit.toFixed(2)}` : '-'
       ]);
       
@@ -362,20 +365,20 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
     ]);
 
     autoTable(doc, {
-      head: [['Código', 'Produto', 'Qtd Vendida', 'Total Vendas', 'Preço Unit.', 'Estoque Final', 'Lucro']],
+      head: [['Código', 'Produto', 'Qtd Vendida', 'Total Vendas', 'Preço Unit.', 'Sobrou', 'Lucro']],
       body: productsData,
       startY: yPosition,
       margin: { left: margin, right: margin },
       styles: { fontSize: 8 },
       headStyles: { fillColor: [66, 139, 202] },
       columnStyles: {
-        0: { cellWidth: 20 }, // Código
-        1: { cellWidth: 35 }, // Produto  
-        2: { cellWidth: 20 }, // Qtd
-        3: { cellWidth: 25 }, // Total Vendas
-        4: { cellWidth: 20 }, // Preço
-        5: { cellWidth: 20 }, // Estoque
-        6: { cellWidth: 20 }  // Lucro
+        0: { cellWidth: 25 }, // Código
+        1: { cellWidth: 40 }, // Produto  
+        2: { cellWidth: 22 }, // Qtd
+        3: { cellWidth: 28 }, // Total Vendas
+        4: { cellWidth: 22 }, // Preço
+        5: { cellWidth: 20 }, // Sobrou
+        6: { cellWidth: 25 }  // Lucro
       },
       didParseCell: function(data) {
         // Destacar linha de total
