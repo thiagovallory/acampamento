@@ -12,14 +12,23 @@ import {
   Alert,
   Stack,
   TextField,
-  InputAdornment
+  InputAdornment,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import { 
   People as PeopleIcon, 
   Inventory as InventoryIcon, 
   Add as AddIcon,
   Search as SearchIcon,
-  ShoppingCart as ShoppingCartIcon
+  ShoppingCart as ShoppingCartIcon,
+  MoreVert as MoreVertIcon,
+  Assessment as AssessmentIcon,
+  Upload as UploadIcon,
+  FileUpload as FileUploadIcon
 } from '@mui/icons-material';
 import { AppProvider, useApp } from './context/AppContext';
 import { PersonList } from './components/PersonList';
@@ -28,6 +37,8 @@ import { ProductForm } from './components/ProductForm';
 import { PersonDetail } from './components/PersonDetail';
 import { PurchaseModal } from './components/PurchaseModal';
 import { ProductList } from './components/ProductList';
+import { CSVImport } from './components/CSVImport';
+import { Reports } from './components/Reports';
 import type { Person } from './types/index';
 import { theme } from './theme/theme';
 
@@ -38,6 +49,10 @@ function AppContent() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [purchasePerson, setPurchasePerson] = useState<Person | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCSVImport, setShowCSVImport] = useState(false);
+  const [csvImportType, setCSVImportType] = useState<'products' | 'people'>('products');
+  const [showReports, setShowReports] = useState(false);
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const { people } = useApp();
 
   const handleTabChange = (
@@ -65,6 +80,26 @@ function AppContent() {
     }
   };
 
+  // Menu handlers
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+  };
+
+  const handleImportCSV = (type: 'products' | 'people') => {
+    setCSVImportType(type);
+    setShowCSVImport(true);
+    handleMenuClose();
+  };
+
+  const handleReports = () => {
+    setShowReports(true);
+    handleMenuClose();
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'surface.variant', color: 'text.primary' }}>
@@ -79,6 +114,7 @@ function AppContent() {
             onChange={handleTabChange}
             aria-label="navigation tabs"
             sx={{
+              mr: 2,
               '& .MuiToggleButton-root': {
                 borderRadius: 4,
                 border: 'none',
@@ -105,6 +141,47 @@ function AppContent() {
               Produtos
             </ToggleButton>
           </ToggleButtonGroup>
+
+          <IconButton
+            color="inherit"
+            onClick={handleMenuOpen}
+            aria-label="mais opções"
+          >
+            <MoreVertIcon />
+          </IconButton>
+
+          <Menu
+            anchorEl={menuAnchorEl}
+            open={Boolean(menuAnchorEl)}
+            onClose={handleMenuClose}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+          >
+            <MenuItem onClick={() => handleImportCSV('products')}>
+              <ListItemIcon>
+                <FileUploadIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Importar Produtos CSV</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={() => handleImportCSV('people')}>
+              <ListItemIcon>
+                <UploadIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Importar Pessoas CSV</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={handleReports}>
+              <ListItemIcon>
+                <AssessmentIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Relatórios</ListItemText>
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
 
@@ -200,6 +277,19 @@ function AppContent() {
         <PurchaseModal
           person={purchasePerson}
           onClose={() => setPurchasePerson(null)}
+        />
+      )}
+      {showCSVImport && (
+        <CSVImport
+          open={showCSVImport}
+          onClose={() => setShowCSVImport(false)}
+          type={csvImportType}
+        />
+      )}
+      {showReports && (
+        <Reports
+          open={showReports}
+          onClose={() => setShowReports(false)}
         />
       )}
     </Box>

@@ -4,12 +4,19 @@ Sistema completo de gestão para cantinas com interface moderna em Material Desi
 
 ## 📋 Funcionalidades
 
+### 🎯 **Funcionalidades Principais**
 - **👥 Gestão de Pessoas**: Cadastro com foto, depósito inicial e controle de saldo
 - **📦 Gestão de Produtos**: Cadastro com leitor de código de barras
 - **🛒 Sistema de Compras**: Carrinho de compras com controle de estoque
 - **📊 Histórico de Compras**: Visualização detalhada das transações
 - **🔍 Busca Inteligente**: Pesquisa por nome ou código de barras
 - **📱 Scanner de Códigos**: Integração com câmera + entrada manual
+
+### 🚀 **Novas Funcionalidades**
+- **📥 Importação por CSV**: Importar produtos e pessoas em massa via CSV
+- **📊 Relatórios Completos**: Gerar relatórios em CSV e PDF
+- **🔄 Atualização Inteligente**: Sistema pergunta antes de atualizar produtos duplicados
+- **📈 Análise de Vendas**: Relatórios com estatísticas detalhadas
 
 ## 🚀 Como Usar o Sistema
 
@@ -93,6 +100,33 @@ npm run electron-dev       # Aplicativo desktop
 - ✅ Aguarde o foco automático
 - ✅ Use "Digitar Código" como alternativa
 
+### 6. 📥 **Importação por CSV**
+**Como importar produtos:**
+1. Clique no menu ⋮ (três pontos) no topo da tela
+2. Selecione "Importar Produtos CSV"
+3. Faça upload do arquivo no formato: `name,barcode,price,stock`
+4. Produtos com código de barras duplicado perguntarão se deseja atualizar
+
+**Como importar pessoas:**
+1. Clique no menu ⋮ (três pontos) no topo da tela
+2. Selecione "Importar Pessoas CSV"
+3. Faça upload do arquivo no formato: `name,customId,initialDeposit`
+4. Pessoas com mesmo nome não serão importadas (evita duplicatas)
+
+**💡 Dica**: Use os arquivos em `exemplos-csv/` como modelo
+
+### 7. 📊 **Relatórios**
+**Como gerar relatórios:**
+1. Clique no menu ⋮ (três pontos) no topo da tela
+2. Selecione "Relatórios"
+3. Escolha o tipo de relatório:
+   - **Pessoas - Lista Simples**: Nome, saldo e informações básicas
+   - **Pessoas - Com Histórico**: Lista completa com todas as compras
+   - **Produtos Completo**: Lista com preços, estoque e valores
+   - **Resumo de Vendas**: Estatísticas de vendas por produto
+4. Escolha o formato: CSV (Excel) ou PDF (Imprimir)
+5. Clique em "Baixar CSV" ou "Gerar PDF"
+
 ## 🔧 Comandos Disponíveis
 
 ```bash
@@ -145,12 +179,27 @@ build-release.bat       # Script automático
 - 💰 **Configure depósitos iniciais** adequados para evitar saldo negativo
 - 📊 **Monitore o histórico** regularmente para controle financeiro
 - 🔄 **Mantenha produtos atualizados** com códigos de barras corretos
+- 📥 **Use importação CSV** para cadastro em massa de produtos/pessoas
+- 📈 **Gere relatórios** periodicamente para análise de vendas
 
 ### 🚨 **Resolução de Problemas**
+
+#### 📱 **Problemas Gerais**
 - **Câmera não funciona?** Use HTTPS ou permita acesso à câmera
 - **Produto não encontrado?** Verifique se o código foi cadastrado corretamente
 - **Saldo insuficiente?** Adicione crédito na conta da pessoa
 - **App lento?** Use a versão desktop para melhor performance
+
+#### 📥 **Importação CSV**
+- **"Nome é obrigatório"** → Verifique se todas as linhas têm nome preenchido
+- **"Preço inválido"** → Use formato numérico (ex: 3.50, não R$ 3,50)
+- **"Pessoa já existe"** → Renomeie pessoas duplicadas ou use ID personalizado
+- **"Erro ao processar"** → Verifique formato do arquivo e separadores
+
+#### 📊 **Relatórios**
+- **PDF não gera?** → Tente usar CSV como alternativa
+- **Dados incompletos?** → Verifique se há compras e produtos cadastrados
+- **Download não funciona?** → Verifique permissões do navegador
 
 ## 🌟 Vantagens por Plataforma
 

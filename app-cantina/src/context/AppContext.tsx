@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import type { Person, Product, Purchase, PurchaseItem } from '../types/index';
 
 interface AppContextType {
@@ -17,6 +18,8 @@ interface AppContextType {
   getPersonById: (id: string) => Person | undefined;
   getProductById: (id: string) => Product | undefined;
   getProductByBarcode: (barcode: string) => Product | undefined;
+  importProductsFromCSV: (csvData: any[], onConflict: (product: any, existing: Product) => boolean) => Promise<{ imported: number; updated: number; errors: string[] }>;
+  importPeopleFromCSV: (csvData: any[]) => Promise<{ imported: number; errors: string[] }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -289,6 +292,112 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const getProductById = (id: string) => products.find(p => p.id === id);
   const getProductByBarcode = (barcode: string) => products.find(p => p.barcode === barcode);
 
+  const importProductsFromCSV = async (
+    csvData: any[], 
+    onConflict: (product: any, existing: Product) => boolean
+  ) => {
+    const results = { imported: 0, updated: 0, errors: [] as string[] };
+    
+    for (let i = 0; i < csvData.length; i++) {
+      const row = csvData[i];
+      try {
+        // Validate required fields
+        if (!row.name || !row.price) {
+          results.errors.push(`Linha ${i + 2}: Nome e preço são obrigatórios`);
+          continue;
+        }
+
+        const price = parseFloat(row.price);
+        const stock = parseInt(row.stock || '0');
+        
+        if (isNaN(price) || price < 0) {
+          results.errors.push(`Linha ${i + 2}: Preço inválido`);
+          continue;
+        }
+
+        if (isNaN(stock) || stock < 0) {
+          results.errors.push(`Linha ${i + 2}: Estoque inválido`);
+          continue;
+        }
+
+        // Check if product exists by barcode
+        const existingProduct = row.barcode ? getProductByBarcode(row.barcode.toString()) : null;
+        
+        if (existingProduct) {
+          // Product exists, ask for confirmation
+          if (onConflict(row, existingProduct)) {
+            updateProduct(existingProduct.id, {
+              name: row.name,
+              price: price,
+              stock: stock,
+              barcode: row.barcode?.toString()
+            });
+            results.updated++;
+          }
+        } else {
+          // New product
+          addProduct({
+            name: row.name,
+            barcode: row.barcode?.toString(),
+            price: price,
+            stock: stock
+          });
+          results.imported++;
+        }
+      } catch (error) {
+        results.errors.push(`Linha ${i + 2}: Erro ao processar - ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      }
+    }
+
+    return results;
+  };
+
+  const importPeopleFromCSV = async (csvData: any[]) => {
+    const results = { imported: 0, errors: [] as string[] };
+    
+    for (let i = 0; i < csvData.length; i++) {
+      const row = csvData[i];
+      try {
+        // Validate required fields
+        if (!row.name) {
+          results.errors.push(`Linha ${i + 2}: Nome é obrigatório`);
+          continue;
+        }
+
+        const initialDeposit = parseFloat(row.initialDeposit || row.deposito || '0');
+        
+        if (isNaN(initialDeposit) || initialDeposit < 0) {
+          results.errors.push(`Linha ${i + 2}: Depósito inicial inválido`);
+          continue;
+        }
+
+        // Check if person already exists by name
+        const existingPerson = people.find(p => 
+          p.name.toLowerCase() === row.name.toLowerCase()
+        );
+        
+        if (existingPerson) {
+          results.errors.push(`Linha ${i + 2}: Pessoa "${row.name}" já existe no sistema`);
+          continue;
+        }
+
+        // Add new person
+        addPerson({
+          name: row.name,
+          customId: row.customId || row.codigo || undefined,
+          initialDeposit: initialDeposit,
+          photo: row.photo || row.foto || undefined,
+          balance: initialDeposit
+        });
+        results.imported++;
+      } catch (error) {
+        results.errors.push(`Linha ${i + 2}: Erro ao processar - ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      }
+    }
+
+    return results;
+  };
+
   return (
     <AppContext.Provider value={{
       people,
@@ -305,7 +414,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       updatePurchaseItemQuantity,
       getPersonById,
       getProductById,
-      getProductByBarcode
+      getProductByBarcode,
+      importProductsFromCSV,
+      importPeopleFromCSV
     }}>
       {children}
     </AppContext.Provider>

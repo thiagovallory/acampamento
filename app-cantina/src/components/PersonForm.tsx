@@ -1,4 +1,5 @@
-import React, { useState, ChangeEvent } from 'react';
+import React, { useState } from 'react';
+import type { ChangeEvent } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -48,7 +49,8 @@ export const PersonForm: React.FC<PersonFormProps> = ({ onClose }) => {
         customId: customId.trim() || undefined,
         name,
         photo,
-        initialDeposit: parseFloat(initialDeposit)
+        initialDeposit: parseFloat(initialDeposit),
+        balance: parseFloat(initialDeposit)
       });
       onClose();
     }
