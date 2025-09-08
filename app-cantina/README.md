@@ -142,13 +142,14 @@ npm run electron-dev       # Aplicativo desktop
 5. Confirme o encerramento
 
 **🎯 O que acontece no encerramento:**
+- ✅ **Registra no histórico** de cada pessoa o destino do saldo (saque ou doação)
 - ✅ Gera **3 relatórios automaticamente** (CSV + 1 PDF):
   - Pessoas com histórico completo de compras
   - Produtos com situação final do estoque
   - Resumo geral de vendas e estatísticas
-- ✅ **Zera todos os saldos** das pessoas
+- ✅ **Zera todos os saldos** das pessoas (após registrar no histórico)
 - ✅ **Zera todo o estoque** dos produtos
-- ✅ **Salva histórico** completo do encerramento
+- ✅ **Salva backup** completo do encerramento
 - ⚠️ **Ação irreversível** - não pode ser desfeita!
 
 ## 🔧 Comandos Disponíveis

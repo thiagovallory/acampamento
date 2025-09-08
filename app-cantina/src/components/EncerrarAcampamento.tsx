@@ -322,6 +322,7 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
                 O encerramento do acampamento irá:
               </Typography>
               <ul>
+                <li>Registrar no histórico de cada pessoa o destino do saldo</li>
                 <li>Zerar todos os saldos das pessoas</li>
                 <li>Zerar todo o estoque de produtos</li>
                 <li>Gerar relatórios finais completos</li>
@@ -392,6 +393,9 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
                       <Typography variant="body2" color="text.secondary">
                         Os saldos serão disponibilizados para saque pelas pessoas
                       </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                        Será registrado no histórico como "Encerramento - Saldo para Saque"
+                      </Typography>
                     </Box>
                   }
                 />
@@ -403,6 +407,9 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
                       <Typography variant="body1">🙏 <strong>Doação para Missionário</strong></Typography>
                       <Typography variant="body2" color="text.secondary">
                         Todos os saldos serão doados para o trabalho missionário
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                        Será registrado no histórico como "Encerramento - Saldo para Missionário"
                       </Typography>
                     </Box>
                   }

@@ -400,9 +400,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const encerrarAcampamento = async (balanceAction: 'saque' | 'missionario') => {
+    const encerramentoDate = new Date();
+    
     // Criar histórico de encerramento antes de limpar os dados
     const encerramentoData = {
-      data: new Date().toISOString(),
+      data: encerramentoDate.toISOString(),
       balanceAction,
       peopleCount: people.length,
       peopleWithBalance: people.filter(p => p.balance > 0).length,
@@ -430,11 +432,39 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     // Salvar histórico no localStorage
     localStorage.setItem('cantina_encerramento_history', JSON.stringify(encerramentoData));
 
-    // Zerar todos os saldos das pessoas
-    setPeople(prev => prev.map(person => ({
-      ...person,
-      balance: 0
-    })));
+    // Atualizar pessoas: adicionar registro de encerramento no histórico e zerar saldo
+    setPeople(prev => prev.map(person => {
+      // Se a pessoa tem saldo positivo, adicionar registro no histórico
+      if (person.balance > 0) {
+        const encerramentoPurchase: Purchase = {
+          id: `encerramento-${Date.now()}-${person.id}`,
+          personId: person.id,
+          date: encerramentoDate,
+          items: [{
+            productId: 'encerramento',
+            productName: balanceAction === 'saque' 
+              ? '💵 Encerramento - Saldo para Saque' 
+              : '🙏 Encerramento - Saldo para Missionário',
+            quantity: 1,
+            price: person.balance,
+            total: person.balance
+          }],
+          total: person.balance
+        };
+
+        return {
+          ...person,
+          balance: 0,
+          purchases: [...person.purchases, encerramentoPurchase]
+        };
+      }
+      
+      // Se não tem saldo, apenas retorna sem mudanças no histórico
+      return {
+        ...person,
+        balance: 0
+      };
+    }));
 
     // Zerar todo o estoque dos produtos
     setProducts(prev => prev.map(product => ({
