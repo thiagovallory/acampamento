@@ -112,9 +112,20 @@ function AppContent() {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'surface.variant', color: 'text.primary' }}>
         <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 500 }}>
-            Sistema de Cantina
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1 }}>
+            <img 
+              src="/LOGO.png" 
+              alt="Logo Acampamento" 
+              style={{ 
+                height: '40px',
+                width: 'auto',
+                objectFit: 'contain'
+              }} 
+            />
+            <Typography variant="h6" component="div" sx={{ fontWeight: 500 }}>
+              Acampamento de Jovens 2025
+            </Typography>
+          </Box>
           
           <ToggleButtonGroup
             value={activeTab}
