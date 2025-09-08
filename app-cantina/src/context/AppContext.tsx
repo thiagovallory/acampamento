@@ -20,6 +20,7 @@ interface AppContextType {
   getProductByBarcode: (barcode: string) => Product | undefined;
   importProductsFromCSV: (csvData: any[], onConflict: (product: any, existing: Product) => boolean) => Promise<{ imported: number; updated: number; errors: string[] }>;
   importPeopleFromCSV: (csvData: any[]) => Promise<{ imported: number; errors: string[] }>;
+  encerrarAcampamento: (balanceAction: 'saque' | 'missionario') => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -398,6 +399,53 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return results;
   };
 
+  const encerrarAcampamento = async (balanceAction: 'saque' | 'missionario') => {
+    // Criar histórico de encerramento antes de limpar os dados
+    const encerramentoData = {
+      data: new Date().toISOString(),
+      balanceAction,
+      peopleCount: people.length,
+      peopleWithBalance: people.filter(p => p.balance > 0).length,
+      totalBalance: people.reduce((sum, p) => sum + p.balance, 0),
+      productsCount: products.length,
+      productsWithStock: products.filter(p => p.stock > 0).length,
+      people: people.map(p => ({
+        id: p.id,
+        name: p.name,
+        customId: p.customId,
+        finalBalance: p.balance,
+        initialDeposit: p.initialDeposit,
+        totalPurchases: p.purchases.length,
+        totalSpent: p.purchases.reduce((sum, purchase) => sum + purchase.total, 0)
+      })),
+      products: products.map(p => ({
+        id: p.id,
+        name: p.name,
+        barcode: p.barcode,
+        finalStock: p.stock,
+        price: p.price
+      }))
+    };
+
+    // Salvar histórico no localStorage
+    localStorage.setItem('cantina_encerramento_history', JSON.stringify(encerramentoData));
+
+    // Zerar todos os saldos das pessoas
+    setPeople(prev => prev.map(person => ({
+      ...person,
+      balance: 0
+    })));
+
+    // Zerar todo o estoque dos produtos
+    setProducts(prev => prev.map(product => ({
+      ...product,
+      stock: 0
+    })));
+
+    // Aguardar um momento para garantir que as alterações sejam persistidas
+    await new Promise(resolve => setTimeout(resolve, 100));
+  };
+
   return (
     <AppContext.Provider value={{
       people,
@@ -416,7 +464,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       getProductById,
       getProductByBarcode,
       importProductsFromCSV,
-      importPeopleFromCSV
+      importPeopleFromCSV,
+      encerrarAcampamento
     }}>
       {children}
     </AppContext.Provider>

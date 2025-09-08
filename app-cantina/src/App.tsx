@@ -28,7 +28,8 @@ import {
   MoreVert as MoreVertIcon,
   Assessment as AssessmentIcon,
   Upload as UploadIcon,
-  FileUpload as FileUploadIcon
+  FileUpload as FileUploadIcon,
+  ExitToApp as ExitToAppIcon
 } from '@mui/icons-material';
 import { AppProvider, useApp } from './context/AppContext';
 import { PersonList } from './components/PersonList';
@@ -39,6 +40,7 @@ import { PurchaseModal } from './components/PurchaseModal';
 import { ProductList } from './components/ProductList';
 import { CSVImport } from './components/CSVImport';
 import { Reports } from './components/Reports';
+import { EncerrarAcampamento } from './components/EncerrarAcampamento';
 import type { Person } from './types/index';
 import { theme } from './theme/theme';
 
@@ -52,6 +54,7 @@ function AppContent() {
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [csvImportType, setCSVImportType] = useState<'products' | 'people'>('products');
   const [showReports, setShowReports] = useState(false);
+  const [showEncerrarAcampamento, setShowEncerrarAcampamento] = useState(false);
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const { people } = useApp();
 
@@ -97,6 +100,11 @@ function AppContent() {
 
   const handleReports = () => {
     setShowReports(true);
+    handleMenuClose();
+  };
+
+  const handleEncerrarAcampamento = () => {
+    setShowEncerrarAcampamento(true);
     handleMenuClose();
   };
 
@@ -180,6 +188,20 @@ function AppContent() {
                 <AssessmentIcon fontSize="small" />
               </ListItemIcon>
               <ListItemText>Relatórios</ListItemText>
+            </MenuItem>
+            <MenuItem 
+              onClick={handleEncerrarAcampamento}
+              sx={{ 
+                color: 'warning.main',
+                '&:hover': { 
+                  bgcolor: 'warning.50' 
+                }
+              }}
+            >
+              <ListItemIcon>
+                <ExitToAppIcon fontSize="small" sx={{ color: 'warning.main' }} />
+              </ListItemIcon>
+              <ListItemText>Encerrar Acampamento</ListItemText>
             </MenuItem>
           </Menu>
         </Toolbar>
@@ -290,6 +312,12 @@ function AppContent() {
         <Reports
           open={showReports}
           onClose={() => setShowReports(false)}
+        />
+      )}
+      {showEncerrarAcampamento && (
+        <EncerrarAcampamento
+          open={showEncerrarAcampamento}
+          onClose={() => setShowEncerrarAcampamento(false)}
         />
       )}
     </Box>

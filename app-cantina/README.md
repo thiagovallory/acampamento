@@ -17,6 +17,7 @@ Sistema completo de gestão para cantinas com interface moderna em Material Desi
 - **📊 Relatórios Completos**: Gerar relatórios em CSV e PDF
 - **🔄 Atualização Inteligente**: Sistema pergunta antes de atualizar produtos duplicados
 - **📈 Análise de Vendas**: Relatórios com estatísticas detalhadas
+- **🏁 Encerrar Acampamento**: Finalizar período com geração automática de relatórios
 
 ## 🚀 Como Usar o Sistema
 
@@ -127,6 +128,29 @@ npm run electron-dev       # Aplicativo desktop
 4. Escolha o formato: CSV (Excel) ou PDF (Imprimir)
 5. Clique em "Baixar CSV" ou "Gerar PDF"
 
+### 8. 🏁 **Encerrar Acampamento**
+**Como finalizar o período do acampamento:**
+1. Clique no menu ⋮ (três pontos) no topo da tela
+2. Selecione "Encerrar Acampamento" (⚠️ opção em laranja)
+3. Revise o resumo da situação atual:
+   - Número total de pessoas e produtos
+   - Pessoas com saldo positivo
+   - Total de saldos a serem processados
+4. Se houver saldos positivos, escolha o destino:
+   - **💵 Permitir Saque**: Saldos ficam disponíveis para retirada
+   - **🙏 Doação para Missionário**: Todos os saldos são doados
+5. Confirme o encerramento
+
+**🎯 O que acontece no encerramento:**
+- ✅ Gera **3 relatórios automaticamente** (CSV + 1 PDF):
+  - Pessoas com histórico completo de compras
+  - Produtos com situação final do estoque
+  - Resumo geral de vendas e estatísticas
+- ✅ **Zera todos os saldos** das pessoas
+- ✅ **Zera todo o estoque** dos produtos
+- ✅ **Salva histórico** completo do encerramento
+- ⚠️ **Ação irreversível** - não pode ser desfeita!
+
 ## 🔧 Comandos Disponíveis
 
 ```bash
@@ -200,6 +224,12 @@ build-release.bat       # Script automático
 - **PDF não gera?** → Tente usar CSV como alternativa
 - **Dados incompletos?** → Verifique se há compras e produtos cadastrados
 - **Download não funciona?** → Verifique permissões do navegador
+
+#### 🏁 **Encerramento de Acampamento**
+- **"Ação não pode ser desfeita"** → ⚠️ Correto! Faça backup antes se necessário
+- **Saldos não aparecem?** → Verifique se há pessoas com saldo positivo
+- **Relatórios não baixam?** → Permita downloads automáticos no navegador
+- **Erro no encerramento?** → Recarregue a página e tente novamente
 
 ## 🌟 Vantagens por Plataforma
 
