@@ -34,13 +34,22 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onClose }) => {
   const [purchasedQuantity, setPurchasedQuantity] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [showBarcodeInput, setShowBarcodeInput] = useState(false);
+  const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; message: string }>({
+    open: false,
+    title: '',
+    message: ''
+  });
+
+  const showError = (title: string, message: string) => {
+    setErrorDialog({ open: true, title, message });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validar campos obrigatórios
     if (!name || !price || !stock) {
-      alert('Nome, preço e estoque são obrigatórios.');
+      showError('Campos Obrigatórios', 'Nome, preço e estoque são obrigatórios.');
       return;
     }
     
@@ -48,7 +57,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onClose }) => {
     if (barcode && barcode.trim()) {
       const existingProduct = products.find(p => p.barcode === barcode.trim());
       if (existingProduct) {
-        alert(`Código de barras "${barcode}" já está sendo usado pelo produto "${existingProduct.name}". Cada produto deve ter um código único.`);
+        showError(
+          'Código Duplicado', 
+          `O código de barras "${barcode}" já está sendo usado pelo produto "${existingProduct.name}". Cada produto deve ter um código único.`
+        );
         return;
       }
     }
@@ -268,6 +280,43 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onClose }) => {
         onScan={handleScan}
         onClose={() => setShowBarcodeInput(false)}
       />
+
+      {/* Diálogo de Erro */}
+      <Dialog
+        open={errorDialog.open}
+        onClose={() => setErrorDialog({ open: false, title: '', message: '' })}
+        aria-labelledby="error-dialog-title"
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle 
+          id="error-dialog-title"
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 1,
+            color: 'error.main',
+            pb: 1 
+          }}
+        >
+          ⚠️ {errorDialog.title}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            {errorDialog.message}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button 
+            onClick={() => setErrorDialog({ open: false, title: '', message: '' })}
+            variant="contained"
+            color="primary"
+            sx={{ borderRadius: 4 }}
+          >
+            Entendido
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

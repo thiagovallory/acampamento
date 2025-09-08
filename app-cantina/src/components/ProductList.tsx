@@ -32,6 +32,11 @@ export const ProductList: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; message: string }>({
+    open: false,
+    title: '',
+    message: ''
+  });
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { 
@@ -44,6 +49,10 @@ export const ProductList: React.FC = () => {
     if (stock > 10) return 'success';
     if (stock > 0) return 'warning';
     return 'error';
+  };
+
+  const showError = (title: string, message: string) => {
+    setErrorDialog({ open: true, title, message });
   };
 
   const filteredProducts = useMemo(() => {
@@ -80,7 +89,7 @@ export const ProductList: React.FC = () => {
       } else {
         const numValue = parseFloat(value);
         if (isNaN(numValue) || numValue < 0) {
-          alert('Preço deve ser um número válido maior ou igual a zero.');
+          showError('Valor Inválido', 'Preço deve ser um número válido maior ou igual a zero.');
           return;
         }
         value = numValue;
@@ -91,13 +100,13 @@ export const ProductList: React.FC = () => {
       } else {
         const numValue = parseInt(value);
         if (isNaN(numValue) || numValue < 0) {
-          alert('Quantidade deve ser um número inteiro maior ou igual a zero.');
+          showError('Valor Inválido', 'Quantidade deve ser um número inteiro maior ou igual a zero.');
           return;
         }
         value = numValue;
       }
     } else if (field === 'name' && !value) {
-      alert('Nome do produto não pode estar vazio.');
+      showError('Campo Obrigatório', 'Nome do produto não pode estar vazio.');
       return;
     } else if (field === 'barcode') {
       if (value === '') {
@@ -110,7 +119,10 @@ export const ProductList: React.FC = () => {
         );
         
         if (existingProduct) {
-          alert(`Código de barras "${value}" já está sendo usado pelo produto "${existingProduct.name}". Cada produto deve ter um código único.`);
+          showError(
+            'Código Duplicado',
+            `O código de barras "${value}" já está sendo usado pelo produto "${existingProduct.name}". Cada produto deve ter um código único.`
+          );
           return;
         }
       }
@@ -478,6 +490,43 @@ export const ProductList: React.FC = () => {
         </Button>
         <Button onClick={handleDeleteConfirm} color="error" variant="contained">
           Excluir
+        </Button>
+      </DialogActions>
+    </Dialog>
+
+    {/* Diálogo de Erro */}
+    <Dialog
+      open={errorDialog.open}
+      onClose={() => setErrorDialog({ open: false, title: '', message: '' })}
+      aria-labelledby="error-dialog-title"
+      maxWidth="sm"
+      fullWidth
+    >
+      <DialogTitle 
+        id="error-dialog-title"
+        sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          color: 'error.main',
+          pb: 1 
+        }}
+      >
+        ⚠️ {errorDialog.title}
+      </DialogTitle>
+      <DialogContent>
+        <Typography variant="body1">
+          {errorDialog.message}
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button 
+          onClick={() => setErrorDialog({ open: false, title: '', message: '' })}
+          variant="contained"
+          color="primary"
+          sx={{ borderRadius: 4 }}
+        >
+          Entendido
         </Button>
       </DialogActions>
     </Dialog>
