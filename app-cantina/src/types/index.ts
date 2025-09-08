@@ -33,3 +33,9 @@ export interface Purchase {
   items: PurchaseItem[];
   total: number;
 }
+
+export interface BrandingConfig {
+  organizationName: string;
+  logoUrl: string;
+  showLogo: boolean;
+}

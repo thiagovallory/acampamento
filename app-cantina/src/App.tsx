@@ -29,7 +29,8 @@ import {
   Assessment as AssessmentIcon,
   Upload as UploadIcon,
   FileUpload as FileUploadIcon,
-  ExitToApp as ExitToAppIcon
+  ExitToApp as ExitToAppIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 import { AppProvider, useApp } from './context/AppContext';
 import { PersonList } from './components/PersonList';
@@ -41,6 +42,7 @@ import { ProductList } from './components/ProductList';
 import { CSVImport } from './components/CSVImport';
 import { Reports } from './components/Reports';
 import { EncerrarAcampamento } from './components/EncerrarAcampamento';
+import { BrandingSettings } from './components/BrandingSettings';
 import type { Person } from './types/index';
 import { theme } from './theme/theme';
 
@@ -55,8 +57,9 @@ function AppContent() {
   const [csvImportType, setCSVImportType] = useState<'products' | 'people'>('products');
   const [showReports, setShowReports] = useState(false);
   const [showEncerrarAcampamento, setShowEncerrarAcampamento] = useState(false);
+  const [showBrandingSettings, setShowBrandingSettings] = useState(false);
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const { people } = useApp();
+  const { people, branding } = useApp();
 
   const handleTabChange = (
     _event: React.MouseEvent<HTMLElement>,
@@ -113,17 +116,19 @@ function AppContent() {
       <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'surface.variant', color: 'text.primary' }}>
         <Toolbar>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1 }}>
-            <img 
-              src="/LOGO.png" 
-              alt="Logo Acampamento" 
-              style={{ 
-                height: '40px',
-                width: 'auto',
-                objectFit: 'contain'
-              }} 
-            />
+            {branding.showLogo && (
+              <img 
+                src={branding.logoUrl} 
+                alt="Logo da Organização" 
+                style={{ 
+                  height: '40px',
+                  width: 'auto',
+                  objectFit: 'contain'
+                }} 
+              />
+            )}
             <Typography variant="h6" component="div" sx={{ fontWeight: 500 }}>
-              Acampamento de Jovens 2025
+              {branding.organizationName}
             </Typography>
           </Box>
           
@@ -199,6 +204,12 @@ function AppContent() {
                 <AssessmentIcon fontSize="small" />
               </ListItemIcon>
               <ListItemText>Relatórios</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={() => { setShowBrandingSettings(true); setMenuAnchorEl(null); }}>
+              <ListItemIcon>
+                <SettingsIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Configurações</ListItemText>
             </MenuItem>
             <MenuItem 
               onClick={handleEncerrarAcampamento}
@@ -329,6 +340,12 @@ function AppContent() {
         <EncerrarAcampamento
           open={showEncerrarAcampamento}
           onClose={() => setShowEncerrarAcampamento(false)}
+        />
+      )}
+      {showBrandingSettings && (
+        <BrandingSettings
+          open={showBrandingSettings}
+          onClose={() => setShowBrandingSettings(false)}
         />
       )}
     </Box>

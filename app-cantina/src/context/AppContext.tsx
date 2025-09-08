@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { Person, Product, Purchase, PurchaseItem } from '../types/index';
+import type { Person, Product, Purchase, PurchaseItem, BrandingConfig } from '../types/index';
 
 interface AppContextType {
   people: Person[];
   products: Product[];
+  branding: BrandingConfig;
   addPerson: (person: Omit<Person, 'id' | 'purchases'>) => void;
   updatePerson: (id: string, updates: Partial<Person>) => void;
   deletePerson: (id: string) => void;
@@ -21,6 +22,7 @@ interface AppContextType {
   importProductsFromCSV: (csvData: any[], onConflict: (product: any, existing: Product) => boolean) => Promise<{ imported: number; updated: number; errors: string[] }>;
   importPeopleFromCSV: (csvData: any[]) => Promise<{ imported: number; errors: string[] }>;
   encerrarAcampamento: (balanceAction: 'saque' | 'missionario') => Promise<void>;
+  updateBranding: (branding: Partial<BrandingConfig>) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -48,6 +50,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [branding, setBranding] = useState<BrandingConfig>(() => {
+    const saved = localStorage.getItem('cantina_branding');
+    return saved ? JSON.parse(saved) : {
+      organizationName: 'Acampamento de Jovens 2025',
+      logoUrl: '/LOGO.png',
+      showLogo: true
+    };
+  });
+
   useEffect(() => {
     localStorage.setItem('cantina_people', JSON.stringify(people));
   }, [people]);
@@ -55,6 +66,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('cantina_products', JSON.stringify(products));
   }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem('cantina_branding', JSON.stringify(branding));
+  }, [branding]);
 
   const addPerson = (person: Omit<Person, 'id' | 'purchases'>) => {
     const newPerson: Person = {
@@ -476,10 +491,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     await new Promise(resolve => setTimeout(resolve, 100));
   };
 
+  const updateBranding = (updates: Partial<BrandingConfig>) => {
+    setBranding(prev => ({ ...prev, ...updates }));
+  };
+
   return (
     <AppContext.Provider value={{
       people,
       products,
+      branding,
       addPerson,
       updatePerson,
       deletePerson,
@@ -495,7 +515,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       getProductByBarcode,
       importProductsFromCSV,
       importPeopleFromCSV,
-      encerrarAcampamento
+      encerrarAcampamento,
+      updateBranding
     }}>
       {children}
     </AppContext.Provider>
