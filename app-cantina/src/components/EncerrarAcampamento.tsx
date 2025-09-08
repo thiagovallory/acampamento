@@ -220,6 +220,32 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
     doc.text(`Destino dos Saldos: ${balanceAction === 'saque' ? 'Saque' : 'Doação para Missionário'}`, margin, yPosition + 10);
     yPosition += 25;
 
+    // Calcular estatísticas de vendas para o resumo
+    const salesStats = new Map<string, { quantity: number; total: number; name: string; price: number }>();
+    let grandTotalSales = 0;
+
+    people.forEach(person => {
+      person.purchases.forEach(purchase => {
+        purchase.items.forEach(item => {
+          if (item.productId !== 'encerramento') { // Não contar registros de encerramento
+            grandTotalSales += item.total;
+            if (salesStats.has(item.productId)) {
+              const existing = salesStats.get(item.productId)!;
+              existing.quantity += item.quantity;
+              existing.total += item.total;
+            } else {
+              salesStats.set(item.productId, {
+                name: item.productName,
+                quantity: item.quantity,
+                total: item.total,
+                price: item.price
+              });
+            }
+          }
+        });
+      });
+    });
+
     // Resumo geral
     doc.setFontSize(14);
     doc.text('RESUMO GERAL', margin, yPosition);
@@ -228,7 +254,8 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
     const summaryData = [
       ['Total de Pessoas', people.length.toString()],
       ['Pessoas com Saldo', peopleWithPositiveBalance.length.toString()],
-      ['Total de Saldos', `R$ ${totalPositiveBalance.toFixed(2)}`],
+      ['Total de Saldos Restantes', `R$ ${totalPositiveBalance.toFixed(2)}`],
+      ['Total de Vendas Realizadas', `R$ ${grandTotalSales.toFixed(2)}`],
       ['Total de Produtos', products.length.toString()],
       ['Produtos em Estoque', products.filter(p => p.stock > 0).length.toString()],
       ['Destino dos Saldos', balanceAction === 'saque' ? 'Saque' : 'Doação Missionário']
@@ -271,7 +298,64 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
         styles: { fontSize: 9 },
         headStyles: { fillColor: [66, 139, 202] }
       });
+
+      yPosition = (doc as any).lastAutoTable.finalY + 20;
     }
+
+    // PRODUTOS E VENDAS REALIZADAS
+    if (yPosition > 200) {
+      doc.addPage();
+      yPosition = 25;
+    }
+
+    doc.setFontSize(14);
+    doc.text('PRODUTOS E VENDAS REALIZADAS', margin, yPosition);
+    yPosition += 10;
+
+    // Preparar dados dos produtos com vendas
+    const productsData: any[] = [];
+    let totalGeralVendas = 0;
+
+    products.forEach(product => {
+      const salesData = salesStats.get(product.id);
+      const quantitySum = salesData ? salesData.quantity : 0;
+      const totalSum = salesData ? salesData.total : 0;
+      
+      productsData.push([
+        product.name,
+        `R$ ${product.price.toFixed(2)}`,
+        quantitySum.toString(),
+        `R$ ${totalSum.toFixed(2)}`,
+        product.stock.toString()
+      ]);
+      
+      totalGeralVendas += totalSum;
+    });
+
+    // Adicionar linha de total
+    productsData.push([
+      'TOTAL GERAL',
+      '',
+      '',
+      `R$ ${totalGeralVendas.toFixed(2)}`,
+      ''
+    ]);
+
+    autoTable(doc, {
+      head: [['Produto', 'Preço Unit.', 'Qtd Vendida', 'Total Vendas', 'Estoque Final']],
+      body: productsData,
+      startY: yPosition,
+      margin: { left: margin, right: margin },
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [66, 139, 202] },
+      didParseCell: function(data) {
+        // Destacar linha de total
+        if (data.row.index === productsData.length - 1) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [240, 240, 240];
+        }
+      }
+    });
 
     // Salvar PDF
     const fileName = `encerramento-final-${new Date().toISOString().split('T')[0]}.pdf`;
