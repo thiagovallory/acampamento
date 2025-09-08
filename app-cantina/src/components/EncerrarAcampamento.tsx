@@ -223,12 +223,21 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
     // Calcular estatísticas de vendas para o resumo
     const salesStats = new Map<string, { quantity: number; total: number; name: string; price: number }>();
     let grandTotalSales = 0;
+    let grandTotalProfit = 0;
 
     people.forEach(person => {
       person.purchases.forEach(purchase => {
         purchase.items.forEach(item => {
           if (item.productId !== 'encerramento') { // Não contar registros de encerramento
             grandTotalSales += item.total;
+            
+            // Calcular lucro se temos custo do produto
+            const product = products.find(p => p.id === item.productId);
+            if (product && product.costPrice) {
+              const profit = (item.price - product.costPrice) * item.quantity;
+              grandTotalProfit += profit;
+            }
+            
             if (salesStats.has(item.productId)) {
               const existing = salesStats.get(item.productId)!;
               existing.quantity += item.quantity;
@@ -256,6 +265,7 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
       ['Pessoas com Saldo', peopleWithPositiveBalance.length.toString()],
       ['Total de Saldos Restantes', `R$ ${totalPositiveBalance.toFixed(2)}`],
       ['Total de Vendas Realizadas', `R$ ${grandTotalSales.toFixed(2)}`],
+      ['Total de Lucro Calculado', grandTotalProfit > 0 ? `R$ ${grandTotalProfit.toFixed(2)}` : 'N/A'],
       ['Total de Produtos', products.length.toString()],
       ['Produtos em Estoque', products.filter(p => p.stock > 0).length.toString()],
       ['Destino dos Saldos', balanceAction === 'saque' ? 'Saque' : 'Doação Missionário']
@@ -315,39 +325,58 @@ export const EncerrarAcampamento: React.FC<EncerrarAcampamentoProps> = ({ open, 
     // Preparar dados dos produtos com vendas
     const productsData: any[] = [];
     let totalGeralVendas = 0;
+    let totalGeralLucro = 0;
 
     products.forEach(product => {
       const salesData = salesStats.get(product.id);
       const quantitySum = salesData ? salesData.quantity : 0;
       const totalSum = salesData ? salesData.total : 0;
       
+      // Calcular lucro se temos preço de custo
+      const costPrice = product.costPrice || 0;
+      const profit = costPrice > 0 ? (product.price - costPrice) * quantitySum : 0;
+      
       productsData.push([
+        product.barcode || '-',
         product.name,
-        `R$ ${product.price.toFixed(2)}`,
         quantitySum.toString(),
         `R$ ${totalSum.toFixed(2)}`,
-        product.stock.toString()
+        `R$ ${product.price.toFixed(2)}`,
+        product.stock.toString(),
+        costPrice > 0 ? `R$ ${profit.toFixed(2)}` : '-'
       ]);
       
       totalGeralVendas += totalSum;
+      totalGeralLucro += profit;
     });
 
     // Adicionar linha de total
     productsData.push([
+      '',
       'TOTAL GERAL',
       '',
-      '',
       `R$ ${totalGeralVendas.toFixed(2)}`,
-      ''
+      '',
+      '',
+      totalGeralLucro > 0 ? `R$ ${totalGeralLucro.toFixed(2)}` : '-'
     ]);
 
     autoTable(doc, {
-      head: [['Produto', 'Preço Unit.', 'Qtd Vendida', 'Total Vendas', 'Estoque Final']],
+      head: [['Código', 'Produto', 'Qtd Vendida', 'Total Vendas', 'Preço Unit.', 'Estoque Final', 'Lucro']],
       body: productsData,
       startY: yPosition,
       margin: { left: margin, right: margin },
-      styles: { fontSize: 9 },
+      styles: { fontSize: 8 },
       headStyles: { fillColor: [66, 139, 202] },
+      columnStyles: {
+        0: { cellWidth: 20 }, // Código
+        1: { cellWidth: 35 }, // Produto  
+        2: { cellWidth: 20 }, // Qtd
+        3: { cellWidth: 25 }, // Total Vendas
+        4: { cellWidth: 20 }, // Preço
+        5: { cellWidth: 20 }, // Estoque
+        6: { cellWidth: 20 }  // Lucro
+      },
       didParseCell: function(data) {
         // Destacar linha de total
         if (data.row.index === productsData.length - 1) {

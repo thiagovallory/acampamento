@@ -30,6 +30,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onClose }) => {
   const [barcode, setBarcode] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
+  const [costPrice, setCostPrice] = useState('');
+  const [purchasedQuantity, setPurchasedQuantity] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [showBarcodeInput, setShowBarcodeInput] = useState(false);
 
@@ -40,7 +42,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onClose }) => {
         name,
         barcode: barcode || undefined,
         price: parseFloat(price),
-        stock: parseInt(stock)
+        stock: parseInt(stock),
+        costPrice: costPrice ? parseFloat(costPrice) : undefined,
+        purchasedQuantity: purchasedQuantity ? parseInt(purchasedQuantity) : undefined
       });
       onClose();
     }
@@ -130,7 +134,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onClose }) => {
               </Box>
 
               <TextField
-                label="Preço"
+                label="Preço de Venda"
                 type="number"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
@@ -152,17 +156,18 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onClose }) => {
               />
 
               <TextField
-                label="Estoque"
+                label="Preço de Custo (opcional)"
                 type="number"
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
+                value={costPrice}
+                onChange={(e) => setCostPrice(e.target.value)}
                 fullWidth
-                required
                 variant="outlined"
+                helperText="Para cálculo de lucro nos relatórios"
                 InputProps={{
-                  endAdornment: <InputAdornment position="end">unidades</InputAdornment>,
+                  startAdornment: <InputAdornment position="start">R$</InputAdornment>,
                 }}
                 inputProps={{
+                  step: '0.01',
                   min: '0'
                 }}
                 sx={{
@@ -171,6 +176,50 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onClose }) => {
                   }
                 }}
               />
+
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  label="Estoque Atual"
+                  type="number"
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
+                  fullWidth
+                  required
+                  variant="outlined"
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">unidades</InputAdornment>,
+                  }}
+                  inputProps={{
+                    min: '0'
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2
+                    }
+                  }}
+                />
+
+                <TextField
+                  label="Qtd. Comprada (opcional)"
+                  type="number"
+                  value={purchasedQuantity}
+                  onChange={(e) => setPurchasedQuantity(e.target.value)}
+                  fullWidth
+                  variant="outlined"
+                  helperText="Quantidade inicialmente comprada"
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">unidades</InputAdornment>,
+                  }}
+                  inputProps={{
+                    min: '0'
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2
+                    }
+                  }}
+                />
+              </Box>
             </Stack>
           </DialogContent>
 

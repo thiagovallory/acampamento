@@ -14,6 +14,8 @@ export interface Product {
   barcode?: string;
   price: number;
   stock: number;
+  costPrice?: number; // Preço de custo unitário
+  purchasedQuantity?: number; // Quantidade inicialmente comprada
 }
 
 export interface PurchaseItem {
