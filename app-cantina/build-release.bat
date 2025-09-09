@@ -1,67 +1,86 @@
 @echo off
-REM Script para gerar releases do App Cantina no Windows
+REM Script de build para Windows
+REM Execute diretamente no Command Prompt ou PowerShell
 
-echo 🚀 Iniciando build de release do App Cantina...
-
-REM Verificar se Node.js está instalado
-where node >nul 2>nul
-if %ERRORLEVEL% NEQ 0 (
-    echo ❌ Node.js não encontrado. Instale Node.js primeiro.
-    pause
-    exit /B 1
-)
+echo.
+echo ====================================
+echo   Build App Cantina - Windows
+echo ====================================
+echo.
 
 REM Verificar se npm está instalado
-where npm >nul 2>nul
-if %ERRORLEVEL% NEQ 0 (
-    echo ❌ npm não encontrado. Instale npm primeiro.
+where npm >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [ERRO] npm nao esta instalado. Por favor, instale o Node.js primeiro.
+    echo Baixe em: https://nodejs.org/
     pause
-    exit /B 1
+    exit /b 1
 )
 
-echo 📦 Instalando dependências...
-npm install
+REM Instalar dependências se necessário
+if not exist "node_modules" (
+    echo [INFO] Instalando dependencias...
+    call npm install
+    if %errorlevel% neq 0 (
+        echo [ERRO] Falha ao instalar dependencias
+        pause
+        exit /b 1
+    )
+)
 
-echo 🏗️  Fazendo build da aplicação web...
-npm run build
+REM Limpar builds anteriores
+echo [INFO] Limpando builds anteriores...
+if exist "dist" rmdir /s /q "dist"
+if exist "release" rmdir /s /q "release"
 
-echo 📱 Escolha o tipo de release:
-echo 1. Windows (.exe)
-echo 2. macOS (.dmg)
-echo 3. Linux (AppImage)
-echo 4. Todas as plataformas
+REM Build da aplicação
+echo [INFO] Compilando aplicacao...
+call npm run build
+if %errorlevel% neq 0 (
+    echo [ERRO] Falha ao compilar aplicacao
+    pause
+    exit /b 1
+)
 
-set /p choice="Digite sua escolha (1-4): "
+echo.
+echo Escolha qual versao deseja gerar:
+echo 1) Windows 64-bit (.exe)
+echo 2) Windows 32-bit (.exe)
+echo 3) Ambas versoes
+echo.
+set /p choice="Opcao (1-3): "
 
 if "%choice%"=="1" (
-    echo 🪟 Gerando release para Windows...
-    npm run dist-win
-    echo ✅ Release Windows gerada em: release/
+    echo [INFO] Gerando versao Windows 64-bit...
+    call npm run dist-win
 ) else if "%choice%"=="2" (
-    echo 🍎 Gerando release para macOS...
-    npm run dist-mac
-    echo ✅ Release macOS gerada em: release/
+    echo [INFO] Gerando versao Windows 32-bit...
+    call npx electron-builder --win --ia32
 ) else if "%choice%"=="3" (
-    echo 🐧 Gerando release para Linux...
-    npm run dist-linux
-    echo ✅ Release Linux gerada em: release/
-) else if "%choice%"=="4" (
-    echo 🌍 Gerando releases para todas as plataformas...
-    npm run dist-win
-    npm run dist-mac
-    npm run dist-linux
-    echo ✅ Todas as releases geradas em: release/
+    echo [INFO] Gerando ambas versoes...
+    call npm run dist-win
 ) else (
-    echo ❌ Opção inválida. Saindo...
+    echo [ERRO] Opcao invalida
     pause
-    exit /B 1
+    exit /b 1
 )
 
-echo 🎉 Build concluído com sucesso!
-echo 📁 Arquivos de instalação disponíveis em: release/
-
-REM Listar arquivos gerados
-echo 📋 Arquivos gerados:
-dir release\ 2>nul || echo Nenhum arquivo encontrado na pasta release/
+if %errorlevel% equ 0 (
+    echo.
+    echo ====================================
+    echo   BUILD CONCLUIDO COM SUCESSO!
+    echo ====================================
+    echo.
+    echo Os executaveis estao na pasta: release\
+    echo.
+    dir release\*.exe /b 2>nul
+    echo.
+    echo Pronto para distribuicao!
+    echo.
+) else (
+    echo [ERRO] Falha durante o build
+    pause
+    exit /b 1
+)
 
 pause
