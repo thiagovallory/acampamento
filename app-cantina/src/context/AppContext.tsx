@@ -23,6 +23,8 @@ interface AppContextType {
   importPeopleFromCSV: (csvData: any[]) => Promise<{ imported: number; errors: string[] }>;
   encerrarAcampamento: (balanceAction: 'saque' | 'missionario') => Promise<void>;
   updateBranding: (branding: Partial<BrandingConfig>) => void;
+  exportAllData: () => string;
+  importAllData: (jsonData: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -55,7 +57,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return saved ? JSON.parse(saved) : {
       organizationName: 'Acampamento de Jovens 2025',
       logoUrl: '/LOGO.png',
-      showLogo: true
+      showLogo: true,
+      darkMode: false
     };
   });
 
@@ -374,13 +377,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     for (let i = 0; i < csvData.length; i++) {
       const row = csvData[i];
       try {
-        // Validate required fields
-        if (!row.name) {
+        // Tenta encontrar o nome em diferentes possíveis campos
+        const name = row['Nome'] || row['name'] || row.nome || row.Name;
+        
+        if (!name) {
           results.errors.push(`Linha ${i + 2}: Nome é obrigatório`);
           continue;
         }
 
-        const initialDeposit = parseFloat(row.initialDeposit || row.deposito || '0');
+        // Tenta encontrar o ID em diferentes campos
+        const customId = row['ID Personalizado'] || row['customId'] || row.customId || row.id || row.codigo;
+        
+        // Tenta encontrar o depósito em diferentes campos
+        const depositValue = row['Depósito Inicial'] || row['Saldo Atual'] || row.initialDeposit || row.deposito || row.saldo || '0';
+        const initialDeposit = parseFloat(String(depositValue).replace(',', '.').replace('R$', '').trim());
         
         if (isNaN(initialDeposit) || initialDeposit < 0) {
           results.errors.push(`Linha ${i + 2}: Depósito inicial inválido`);
@@ -389,20 +399,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
         // Check if person already exists by name
         const existingPerson = people.find(p => 
-          p.name.toLowerCase() === row.name.toLowerCase()
+          p.name.toLowerCase() === name.toLowerCase()
         );
         
         if (existingPerson) {
-          results.errors.push(`Linha ${i + 2}: Pessoa "${row.name}" já existe no sistema`);
+          results.errors.push(`Linha ${i + 2}: Pessoa "${name}" já existe no sistema`);
           continue;
         }
 
         // Add new person
         addPerson({
-          name: row.name,
-          customId: row.customId || row.codigo || undefined,
+          name: name,
+          customId: customId || undefined,
           initialDeposit: initialDeposit,
-          photo: row.photo || row.foto || undefined,
+          photo: undefined,
           balance: initialDeposit
         });
         results.imported++;
@@ -495,6 +505,49 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setBranding(prev => ({ ...prev, ...updates }));
   };
 
+  const exportAllData = () => {
+    const allData = {
+      version: '1.0',
+      timestamp: new Date().toISOString(),
+      people,
+      products,
+      branding
+    };
+    return JSON.stringify(allData, null, 2);
+  };
+
+  const importAllData = async (jsonData: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const data = JSON.parse(jsonData);
+      
+      // Validar estrutura básica
+      if (!data.version || !Array.isArray(data.people) || !Array.isArray(data.products)) {
+        return { 
+          success: false, 
+          error: 'Formato de dados inválido. Verifique se o arquivo foi gerado pelo sistema.' 
+        };
+      }
+
+      // Importar dados
+      setPeople(data.people || []);
+      setProducts(data.products || []);
+      
+      if (data.branding) {
+        setBranding(data.branding);
+      }
+
+      // Aguardar persistência no localStorage
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      return { success: true };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Erro ao processar arquivo' 
+      };
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       people,
@@ -516,7 +569,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       importProductsFromCSV,
       importPeopleFromCSV,
       encerrarAcampamento,
-      updateBranding
+      updateBranding,
+      exportAllData,
+      importAllData
     }}>
       {children}
     </AppContext.Provider>

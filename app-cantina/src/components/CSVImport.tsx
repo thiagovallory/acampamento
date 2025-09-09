@@ -38,11 +38,17 @@ export const CSVImport: React.FC<CSVImportProps> = ({ open, onClose, type }) => 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState<any>(null);
-  // Removed conflict dialog state as we're using window.confirm instead
+  const [isDragging, setIsDragging] = useState(false);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const processFile = (file: File) => {
     if (!file) return;
+    if (!file.name.endsWith('.csv')) {
+      setResults({
+        success: false,
+        errors: ['Por favor, selecione um arquivo CSV']
+      });
+      return;
+    }
 
     setIsProcessing(true);
     setResults(null);
@@ -50,6 +56,7 @@ export const CSVImport: React.FC<CSVImportProps> = ({ open, onClose, type }) => 
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
+      delimiter: ';', // Suporta delimitador ;
       complete: async (result) => {
         if (result.errors.length > 0) {
           setResults({
@@ -100,9 +107,34 @@ export const CSVImport: React.FC<CSVImportProps> = ({ open, onClose, type }) => 
         setIsProcessing(false);
       }
     });
+  };
 
-    // Clear the file input
-    event.target.value = '';
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      processFile(file);
+      event.target.value = '';
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      processFile(file);
+    }
   };
 
   const handleClose = () => {
@@ -113,13 +145,13 @@ export const CSVImport: React.FC<CSVImportProps> = ({ open, onClose, type }) => 
   const getExampleFormat = () => {
     if (type === 'products') {
       return {
-        headers: ['name', 'barcode', 'price', 'stock'],
-        example: ['Coca-Cola 350ml', '7894900011517', '3.50', '50']
+        headers: ['Código', 'Produto', 'Qtd Comprada', 'Custo', 'Preço', 'Vendidos', 'Valor Total Vendido', 'Estoque'],
+        example: ['7894900011517', 'Coca-Cola 350ml', '0', '', '3.50', '0', '0.00', '50']
       };
     } else {
       return {
-        headers: ['name', 'customId', 'initialDeposit'],
-        example: ['João Silva', 'A001', '50.00']
+        headers: ['ID Personalizado', 'Nome', 'Saldo Atual', 'Depósito Inicial', 'Total Compras'],
+        example: ['A001', 'João Silva', '50.00', '50.00', '0']
       };
     }
   };
@@ -157,23 +189,28 @@ export const CSVImport: React.FC<CSVImportProps> = ({ open, onClose, type }) => 
                 <Box
                   sx={{
                     border: '2px dashed',
-                    borderColor: 'primary.main',
+                    borderColor: isDragging ? 'success.main' : 'primary.main',
                     borderRadius: 2,
                     p: 4,
                     textAlign: 'center',
                     cursor: 'pointer',
+                    bgcolor: isDragging ? 'action.hover' : 'transparent',
+                    transition: 'all 0.3s',
                     '&:hover': {
                       bgcolor: 'action.hover'
                     }
                   }}
                   onClick={() => fileInputRef.current?.click()}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
                 >
-                  <UploadIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
+                  <UploadIcon sx={{ fontSize: 48, color: isDragging ? 'success.main' : 'primary.main', mb: 2 }} />
                   <Typography variant="h6" gutterBottom>
-                    Clique aqui para selecionar arquivo CSV
+                    {isDragging ? 'Solte o arquivo aqui' : 'Clique aqui para selecionar arquivo CSV'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Ou arraste e solte o arquivo aqui
+                    {isDragging ? 'Arquivo detectado!' : 'Ou arraste e solte o arquivo aqui'}
                   </Typography>
                 </Box>
 

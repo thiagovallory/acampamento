@@ -18,7 +18,9 @@ import {
 import {
   Close as CloseIcon,
   PhotoCamera as PhotoCameraIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  DarkMode as DarkModeIcon,
+  LightMode as LightModeIcon
 } from '@mui/icons-material';
 import { useApp } from '../context/AppContext';
 
@@ -32,13 +34,15 @@ export const BrandingSettings: React.FC<BrandingSettingsProps> = ({ open, onClos
   const [organizationName, setOrganizationName] = useState(branding.organizationName);
   const [logoUrl, setLogoUrl] = useState(branding.logoUrl);
   const [showLogo, setShowLogo] = useState(branding.showLogo);
+  const [darkMode, setDarkMode] = useState(branding.darkMode);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = () => {
     updateBranding({
       organizationName,
       logoUrl,
-      showLogo
+      showLogo,
+      darkMode
     });
     onClose();
   };
@@ -48,6 +52,7 @@ export const BrandingSettings: React.FC<BrandingSettingsProps> = ({ open, onClos
     setOrganizationName(branding.organizationName);
     setLogoUrl(branding.logoUrl);
     setShowLogo(branding.showLogo);
+    setDarkMode(branding.darkMode);
     onClose();
   };
 
@@ -68,6 +73,7 @@ export const BrandingSettings: React.FC<BrandingSettingsProps> = ({ open, onClos
     setOrganizationName('Acampamento de Jovens 2025');
     setLogoUrl('/LOGO.png');
     setShowLogo(true);
+    setDarkMode(false);
   };
 
   return (
@@ -144,43 +150,53 @@ export const BrandingSettings: React.FC<BrandingSettingsProps> = ({ open, onClos
                     border: '1px solid',
                     borderColor: 'divider',
                     borderRadius: 2,
-                    bgcolor: 'grey.50'
+                    bgcolor: theme => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'
                   }}>
-                    <Avatar
-                      src={logoUrl}
-                      alt="Logo Preview"
-                      sx={{ 
-                        width: 60, 
-                        height: 60,
-                        bgcolor: 'primary.main'
-                      }}
-                    >
-                      📋
-                    </Avatar>
+                    <Box sx={{
+                      width: 100,
+                      height: 100,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 1,
+                      overflow: 'hidden',
+                      bgcolor: theme => theme.palette.mode === 'dark' ? 'grey.800' : 'white',
+                      border: '1px solid',
+                      borderColor: 'divider'
+                    }}>
+                      {logoUrl ? (
+                        <img 
+                          src={logoUrl}
+                          alt="Logo Preview"
+                          style={{ 
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain'
+                          }}
+                        />
+                      ) : (
+                        <Typography variant="h4" color="text.secondary">📋</Typography>
+                      )}
+                    </Box>
                     <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="body1" fontWeight={500}>
-                        Preview do Logo
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {logoUrl.includes('blob:') ? 'Arquivo local selecionado' : logoUrl}
-                      </Typography>
+                      {/* URL do Logo */}
+                      <TextField
+                        label="URL do Logotipo"
+                        value={logoUrl}
+                        onChange={(e) => setLogoUrl(e.target.value)}
+                        fullWidth
+                        variant="outlined"
+                        helperText="Caminho para o arquivo de imagem (ex: /logo.png)"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2
+                          },
+                          marginTop: 2
+                        }}
+                      />
                     </Box>
                   </Box>
 
-                  {/* URL do Logo */}
-                  <TextField
-                    label="URL do Logotipo"
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    fullWidth
-                    variant="outlined"
-                    helperText="Caminho para o arquivo de imagem (ex: /logo.png)"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2
-                      }
-                    }}
-                  />
 
                   {/* Botões de Ação */}
                   <Stack direction="row" spacing={1}>
@@ -203,6 +219,30 @@ export const BrandingSettings: React.FC<BrandingSettingsProps> = ({ open, onClos
                   </Stack>
                 </Stack>
               )}
+            </Box>
+
+            <Divider />
+
+            {/* Modo Escuro */}
+            <Box>
+              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+                Aparência
+              </Typography>
+              
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={darkMode}
+                    onChange={(e) => setDarkMode(e.target.checked)}
+                  />
+                }
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {darkMode ? <DarkModeIcon fontSize="small" /> : <LightModeIcon fontSize="small" />}
+                    <Typography>{darkMode ? 'Modo Escuro' : 'Modo Claro'}</Typography>
+                  </Box>
+                }
+              />
             </Box>
 
             <Divider />

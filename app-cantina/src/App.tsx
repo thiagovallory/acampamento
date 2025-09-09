@@ -30,7 +30,8 @@ import {
   Upload as UploadIcon,
   FileUpload as FileUploadIcon,
   ExitToApp as ExitToAppIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Sync as SyncIcon
 } from '@mui/icons-material';
 import { AppProvider, useApp } from './context/AppContext';
 import { PersonList } from './components/PersonList';
@@ -43,8 +44,10 @@ import { CSVImport } from './components/CSVImport';
 import { Reports } from './components/Reports';
 import { EncerrarAcampamento } from './components/EncerrarAcampamento';
 import { BrandingSettings } from './components/BrandingSettings';
+import { DataSync } from './components/DataSync';
+import { NetworkStatus } from './components/NetworkStatus';
 import type { Person } from './types/index';
-import { theme } from './theme/theme';
+import { createAppTheme } from './theme/theme';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<'people' | 'products'>('people');
@@ -58,6 +61,7 @@ function AppContent() {
   const [showReports, setShowReports] = useState(false);
   const [showEncerrarAcampamento, setShowEncerrarAcampamento] = useState(false);
   const [showBrandingSettings, setShowBrandingSettings] = useState(false);
+  const [showDataSync, setShowDataSync] = useState(false);
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const { people, branding } = useApp();
 
@@ -66,9 +70,15 @@ function AppContent() {
     newValue: 'people' | 'products' | null,
   ) => {
     if (newValue !== null) {
-      setActiveTab(newValue);
-      setSearchTerm(''); // Limpa a busca ao mudar de aba
-      setSelectedPerson(null); // Limpa a pessoa selecionada ao mudar de aba
+      // Se clicar em "Pessoas" e já está na aba pessoas, volta para a lista
+      if (newValue === 'people' && activeTab === 'people' && selectedPerson) {
+        setSelectedPerson(null);
+        setSearchTerm('');
+      } else {
+        setActiveTab(newValue);
+        setSearchTerm(''); // Limpa a busca ao mudar de aba
+        setSelectedPerson(null); // Limpa a pessoa selecionada ao mudar de aba
+      }
     }
   };
 
@@ -130,6 +140,9 @@ function AppContent() {
             <Typography variant="h6" component="div" sx={{ fontWeight: 500 }}>
               {branding.organizationName}
             </Typography>
+            <Box sx={{ ml: 2 }}>
+              <NetworkStatus />
+            </Box>
           </Box>
           
           <ToggleButtonGroup
@@ -210,6 +223,12 @@ function AppContent() {
                 <SettingsIcon fontSize="small" />
               </ListItemIcon>
               <ListItemText>Configurações</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={() => { setShowDataSync(true); setMenuAnchorEl(null); }}>
+              <ListItemIcon>
+                <SyncIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Sincronização</ListItemText>
             </MenuItem>
             <MenuItem 
               onClick={handleEncerrarAcampamento}
@@ -348,18 +367,33 @@ function AppContent() {
           onClose={() => setShowBrandingSettings(false)}
         />
       )}
+      {showDataSync && (
+        <DataSync
+          open={showDataSync}
+          onClose={() => setShowDataSync(false)}
+        />
+      )}
     </Box>
+  );
+}
+
+function ThemedApp() {
+  const { branding } = useApp();
+  const theme = createAppTheme(branding.darkMode);
+  
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AppContent />
+    </ThemeProvider>
   );
 }
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
-    </ThemeProvider>
+    <AppProvider>
+      <ThemedApp />
+    </AppProvider>
   );
 }
 

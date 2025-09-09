@@ -40,7 +40,10 @@ import {
   Close as CloseIcon,
   CardGiftcard as OfferIcon,
   AccountBalance as CloseAccountIcon,
-  AccountBalance
+  AccountBalance,
+  AttachMoney as WithdrawalIcon,
+  VolunteerActivism as MissionaryIcon,
+  PersonRemove as DeletePersonIcon
 } from '@mui/icons-material';
 import { useApp } from '../context/AppContext';
 import type { Person } from '../types/index';
@@ -51,7 +54,7 @@ interface PersonDetailProps {
 }
 
 export const PersonDetail: React.FC<PersonDetailProps> = ({ person, onBack }) => {
-  const { getProductById, deletePurchase, deletePurchaseItem, updatePurchaseItemQuantity, updatePerson } = useApp();
+  const { getProductById, deletePurchase, deletePurchaseItem, updatePurchaseItemQuantity, updatePerson, deletePerson, getPersonById, people } = useApp();
   const [expandedPurchase, setExpandedPurchase] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<{purchaseId: string; productId: string} | null>(null);
   const [editQuantity, setEditQuantity] = useState<string>('');
@@ -66,10 +69,15 @@ export const PersonDetail: React.FC<PersonDetailProps> = ({ person, onBack }) =>
   const [offerDialogOpen, setOfferDialogOpen] = useState(false);
   const [offerAmount, setOfferAmount] = useState('');
   const [closeAccountDialogOpen, setCloseAccountDialogOpen] = useState(false);
+  const [deletePersonDialogOpen, setDeletePersonDialogOpen] = useState(false);
 
+  // Atualiza sempre que a pessoa muda no contexto global
   React.useEffect(() => {
-    setLocalPerson(person);
-  }, [person]);
+    const updatedPerson = getPersonById(person.id);
+    if (updatedPerson) {
+      setLocalPerson(updatedPerson);
+    }
+  }, [person.id, people, getPersonById]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { 
@@ -417,6 +425,20 @@ export const PersonDetail: React.FC<PersonDetailProps> = ({ person, onBack }) =>
     setCloseAccountDialogOpen(false);
   };
 
+  const handleDeletePersonClick = () => {
+    setDeletePersonDialogOpen(true);
+  };
+
+  const handleDeletePersonConfirm = () => {
+    deletePerson(localPerson.id);
+    setDeletePersonDialogOpen(false);
+    onBack(); // Volta para a lista de pessoas
+  };
+
+  const handleDeletePersonCancel = () => {
+    setDeletePersonDialogOpen(false);
+  };
+
   const handleQuantityChange = (purchaseId: string, productId: string, item: any, delta: number) => {
     const newQuantity = item.quantity + delta;
     if (newQuantity <= 0) {
@@ -676,25 +698,42 @@ export const PersonDetail: React.FC<PersonDetailProps> = ({ person, onBack }) =>
         ) : (
           <Stack spacing={2}>
             {localPerson.purchases.map((purchase) => {
-              // Verifica se é uma transação especial (saque ou oferta)
+              // Verifica se é uma transação especial (saque, oferta ou encerramento)
               const isSpecialTransaction = purchase.items.length === 1 && 
                 (purchase.items[0].productName === 'Saque - Fechamento de Conta' || 
-                 purchase.items[0].productName === 'Oferta Missionária');
+                 purchase.items[0].productName === 'Oferta Missionária' ||
+                 purchase.items[0].productName.includes('Encerramento - Saldo para'));
 
               if (isSpecialTransaction) {
                 const item = purchase.items[0];
                 const isWithdrawal = item.productName === 'Saque - Fechamento de Conta';
+                const isMissionaryOffer = item.productName === 'Oferta Missionária';
+                const isEncerramento = item.productName.includes('Encerramento - Saldo para');
+                const isEncerramentoSaque = item.productName.includes('Saldo para Saque');
+                const isEncerramentoMissionario = item.productName.includes('Saldo para Missionário');
+
+                // Determina ícone e cor baseado no tipo
+                let icon, chipColor;
+                if (isWithdrawal) {
+                  icon = <AccountBalance color="error" />;
+                  chipColor = "error";
+                } else if (isMissionaryOffer || isEncerramentoMissionario) {
+                  icon = <MissionaryIcon sx={{ color: 'secondary.main' }} />;
+                  chipColor = "secondary";
+                } else if (isEncerramentoSaque) {
+                  icon = <WithdrawalIcon color="warning" />;
+                  chipColor = "warning";
+                } else {
+                  icon = <OfferIcon sx={{ color: 'secondary.main' }} />;
+                  chipColor = "secondary";
+                }
                 
                 return (
                   <Card key={purchase.id} sx={{ borderRadius: 2 }}>
                     <CardContent>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          {isWithdrawal ? (
-                            <AccountBalance color="error" />
-                          ) : (
-                            <OfferIcon sx={{ color: 'secondary.main' }} />
-                          )}
+                          {icon}
                           <Box>
                             <Typography variant="body1" fontWeight={500}>
                               {item.productName}
@@ -710,7 +749,7 @@ export const PersonDetail: React.FC<PersonDetailProps> = ({ person, onBack }) =>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Chip 
                             label={formatCurrency(purchase.total)}
-                            color={isWithdrawal ? "error" : "secondary"}
+                            color={chipColor as any}
                             sx={{ fontWeight: 600 }}
                           />
                           <IconButton 
@@ -848,6 +887,70 @@ export const PersonDetail: React.FC<PersonDetailProps> = ({ person, onBack }) =>
           </Stack>
         )}
       </Paper>
+
+      {/* Danger Zone */}
+      <Paper sx={{ 
+        p: 3, 
+        borderRadius: 2,
+        mt: 3,
+        border: '2px solid',
+        borderColor: 'error.main',
+        bgcolor: theme => theme.palette.mode === 'dark' 
+          ? 'rgba(244, 67, 54, 0.05)' 
+          : 'rgba(211, 47, 47, 0.02)'
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <Typography 
+            variant="h6" 
+            fontWeight={600}
+            sx={{ color: 'error.main' }}
+          >
+            ⚠️ Zona de Perigo
+          </Typography>
+        </Box>
+        
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Ações irreversíveis que afetam permanentemente os dados desta pessoa.
+        </Typography>
+
+        <Box sx={{ 
+          p: 2, 
+          borderRadius: 1,
+          border: '1px dashed',
+          borderColor: 'error.light',
+          bgcolor: theme => theme.palette.mode === 'dark'
+            ? 'rgba(244, 67, 54, 0.08)'
+            : 'rgba(244, 67, 54, 0.05)'
+        }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box>
+              <Typography variant="subtitle1" fontWeight={500} color="error.main">
+                Excluir Pessoa Permanentemente
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Remove todos os dados, histórico de compras e saldo. Esta ação não pode ser desfeita.
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              startIcon={<DeletePersonIcon />}
+              onClick={handleDeletePersonClick}
+              sx={{ 
+                bgcolor: 'error.main',
+                color: 'white',
+                '&:hover': { 
+                  bgcolor: 'error.dark'
+                },
+                borderRadius: 2,
+                px: 3,
+                minWidth: 150
+              }}
+            >
+              Excluir Pessoa
+            </Button>
+          </Box>
+        </Box>
+      </Paper>
       
       <Dialog
         open={deleteDialogOpen}
@@ -962,6 +1065,54 @@ export const PersonDetail: React.FC<PersonDetailProps> = ({ person, onBack }) =>
             color="error"
           >
             Confirmar Fechamento
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Excluir Pessoa */}
+      <Dialog
+        open={deletePersonDialogOpen}
+        onClose={handleDeletePersonCancel}
+        aria-labelledby="delete-person-dialog-title"
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle id="delete-person-dialog-title" sx={{ color: 'error.main' }}>
+          ⚠️ Excluir Pessoa
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Tem certeza que deseja excluir permanentemente <strong>{localPerson.name}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Esta ação irá:
+          </Typography>
+          <Box component="ul" sx={{ pl: 2, mb: 2 }}>
+            <Typography component="li" variant="body2" color="text.secondary">
+              Remover permanentemente todos os dados da pessoa
+            </Typography>
+            <Typography component="li" variant="body2" color="text.secondary">
+              Excluir todo o histórico de compras ({localPerson.purchases.length} transações)
+            </Typography>
+            <Typography component="li" variant="body2" color="text.secondary">
+              Perder o saldo atual de <strong>{formatCurrency(localPerson.balance)}</strong>
+            </Typography>
+          </Box>
+          <Typography variant="body2" color="error.main" fontWeight={600}>
+            ⚠️ Esta ação não pode ser desfeita!
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeletePersonCancel} color="inherit">
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleDeletePersonConfirm} 
+            variant="contained"
+            color="error"
+            startIcon={<DeletePersonIcon />}
+          >
+            Confirmar Exclusão
           </Button>
         </DialogActions>
       </Dialog>

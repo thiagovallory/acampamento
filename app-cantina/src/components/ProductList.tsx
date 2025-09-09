@@ -56,12 +56,17 @@ export const ProductList: React.FC = () => {
   };
 
   const filteredProducts = useMemo(() => {
-    if (!searchTerm) return products;
+    const filtered = !searchTerm 
+      ? products 
+      : products.filter(product => {
+          const lowerSearch = searchTerm.toLowerCase();
+          return product.name.toLowerCase().includes(lowerSearch) ||
+            (product.barcode && product.barcode.toLowerCase().includes(lowerSearch));
+        });
     
-    const lowerSearch = searchTerm.toLowerCase();
-    return products.filter(product => 
-      product.name.toLowerCase().includes(lowerSearch) ||
-      (product.barcode && product.barcode.toLowerCase().includes(lowerSearch))
+    // Ordena os produtos alfabeticamente pelo nome
+    return [...filtered].sort((a, b) => 
+      a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
     );
   }, [products, searchTerm]);
 

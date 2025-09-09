@@ -38,4 +38,5 @@ export interface BrandingConfig {
   organizationName: string;
   logoUrl: string;
   showLogo: boolean;
+  darkMode: boolean;
 }

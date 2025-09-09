@@ -45,6 +45,9 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({ person, onClose })
   const [showScanner, setShowScanner] = useState(false);
 
   const filteredProducts = products.filter(p => {
+    // Primeiro filtra produtos com estoque
+    if (p.stock <= 0) return false;
+    
     // Extrai apenas o código de barras da busca, ignorando quantidade (ex: "2*123" -> "123")
     const quantityMatch = searchTerm.trim().match(/^(\d+)\*(.+)$/);
     const searchCode = quantityMatch ? quantityMatch[2] : searchTerm;
@@ -272,6 +275,21 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({ person, onClose })
                   Escanear
                 </Button>
               </Box>
+
+              {filteredProducts.length === 0 && (
+                <Box sx={{ 
+                  textAlign: 'center', 
+                  py: 4,
+                  bgcolor: 'background.paper',
+                  borderRadius: 2
+                }}>
+                  <Typography variant="body1" color="text.secondary">
+                    {searchTerm 
+                      ? 'Nenhum produto disponível com estoque para esta busca'
+                      : 'Nenhum produto disponível com estoque no momento'}
+                  </Typography>
+                </Box>
+              )}
 
               <Grid container spacing={2}>
                 {filteredProducts.map((product) => (

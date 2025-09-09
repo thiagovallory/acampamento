@@ -44,16 +44,22 @@ export const Reports: React.FC<ReportsProps> = ({ open, onClose }) => {
   const [selectedReport, setSelectedReport] = useState<ReportType>('people-simple');
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('csv');
 
+  // Remove emojis do texto para PDF
+  const cleanTextForPDF = (text: string): string => {
+    // Remove emojis e caracteres especiais que não são suportados pelo PDF
+    return text.replace(/[\u{1F300}-\u{1FAD6}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
+  };
+
   const generatePeopleSimpleCSV = () => {
     const csvData = people.map(person => ({
+      'ID Personalizado': person.customId ? `="${person.customId}"` : '', // Força texto
       'Nome': person.name,
-      'ID Personalizado': person.customId || '',
-      'Saldo Atual': `R$ ${person.balance.toFixed(2)}`,
-      'Depósito Inicial': `R$ ${person.initialDeposit.toFixed(2)}`,
+      'Saldo Atual': person.balance.toFixed(2),
+      'Depósito Inicial': person.initialDeposit.toFixed(2),
       'Total Compras': person.purchases.length
     }));
 
-    const csv = Papa.unparse(csvData);
+    const csv = Papa.unparse(csvData, { delimiter: ';' });
     const orgSlug = branding.organizationName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     downloadCSV(csv, `${orgSlug}-pessoas-simples.csv`);
   };
@@ -76,34 +82,59 @@ export const Reports: React.FC<ReportsProps> = ({ open, onClose }) => {
         person.purchases.forEach(purchase => {
           purchase.items.forEach(item => {
             csvData.push({
+              'ID Personalizado': person.customId ? `="${person.customId}"` : '',
               'Nome': person.name,
-              'ID Personalizado': person.customId || '',
-              'Saldo': `R$ ${person.balance.toFixed(2)}`,
+              'Saldo': person.balance.toFixed(2),
               'Data Compra': new Date(purchase.date).toLocaleDateString('pt-BR'),
-              'Produto': item.productName,
+              'Produto': cleanTextForPDF(item.productName), // Remove emojis como no PDF
               'Quantidade': item.quantity,
-              'Valor': `R$ ${item.total.toFixed(2)}`
+              'Valor': item.total.toFixed(2)
             });
           });
         });
       }
     });
 
-    const csv = Papa.unparse(csvData);
+    const csv = Papa.unparse(csvData, { delimiter: ';' });
     const orgSlug = branding.organizationName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     downloadCSV(csv, `${orgSlug}-pessoas-detalhadas.csv`);
   };
 
   const generateProductsCSV = () => {
-    const csvData = products.map(product => ({
-      'Nome': product.name,
-      'Código de Barras': product.barcode || '',
-      'Preço': `R$ ${product.price.toFixed(2)}`,
-      'Estoque': product.stock,
-      'Valor Total Estoque': `R$ ${(product.price * product.stock).toFixed(2)}`
-    }));
+    // Calcula vendas por produto (igual ao PDF)
+    const salesByProduct = new Map<string, { quantity: number; total: number }>();
+    people.forEach(person => {
+      person.purchases.forEach(purchase => {
+        purchase.items.forEach(item => {
+          if (salesByProduct.has(item.productId)) {
+            const existing = salesByProduct.get(item.productId)!;
+            existing.quantity += item.quantity;
+            existing.total += item.total;
+          } else {
+            salesByProduct.set(item.productId, {
+              quantity: item.quantity,
+              total: item.total
+            });
+          }
+        });
+      });
+    });
 
-    const csv = Papa.unparse(csvData);
+    const csvData = products.map(product => {
+      const sales = salesByProduct.get(product.id) || { quantity: 0, total: 0 };
+      return {
+        'Código': product.barcode ? `="${product.barcode}"` : '', // Força texto com =
+        'Produto': product.name,
+        'Qtd Comprada': product.purchasedQuantity || 0,
+        'Custo': product.costPrice ? product.costPrice.toFixed(2) : '',
+        'Preço': product.price.toFixed(2),
+        'Vendidos': sales.quantity,
+        'Valor Total Vendido': sales.total.toFixed(2),
+        'Estoque': product.stock
+      };
+    });
+
+    const csv = Papa.unparse(csvData, { delimiter: ';' });
     const orgSlug = branding.organizationName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     downloadCSV(csv, `${orgSlug}-produtos.csv`);
   };
@@ -136,39 +167,101 @@ export const Reports: React.FC<ReportsProps> = ({ open, onClose }) => {
 
     const csvData = Array.from(salesData.values())
       .map(item => ({
-        'Produto': item.name,
-        'Quantidade Vendida': item.quantity,
-        'Total Vendas': `R$ ${item.total.toFixed(2)}`,
-        'Ticket Médio': `R$ ${(item.total / item.quantity).toFixed(2)}`
+        'Produto': cleanTextForPDF(item.name), // Remove emojis como no PDF
+        'Quantidade': item.quantity,
+        'Total': item.total.toFixed(2),
+        'Ticket Médio': (item.total / item.quantity).toFixed(2)
       }))
-      .sort((a, b) => parseFloat(b['Total Vendas'].replace('R$ ', '')) - parseFloat(a['Total Vendas'].replace('R$ ', '')));
+      .sort((a, b) => parseFloat(b['Total']) - parseFloat(a['Total']));
 
     // Add summary row
     csvData.unshift({
       'Produto': '=== RESUMO GERAL ===',
-      'Quantidade Vendida': totalTransactions,
-      'Total Vendas': `R$ ${grandTotal.toFixed(2)}`,
-      'Ticket Médio': totalTransactions > 0 ? `R$ ${(grandTotal / totalTransactions).toFixed(2)}` : 'R$ 0.00'
+      'Quantidade': totalTransactions,
+      'Total': grandTotal.toFixed(2),
+      'Ticket Médio': totalTransactions > 0 ? (grandTotal / totalTransactions).toFixed(2) : '0.00'
     });
 
-    const csv = Papa.unparse(csvData);
+    const csv = Papa.unparse(csvData, { delimiter: ';' });
     const orgSlug = branding.organizationName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     downloadCSV(csv, `${orgSlug}-resumo-vendas.csv`);
   };
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     const doc = new jsPDF();
-    const margin = 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 10;
+    let yPosition = 20;
 
-    // Header com branding
-    doc.setFontSize(14);
-    doc.text(`🏢 ${branding.organizationName}`, margin, 25);
+    // Adiciona logo centralizada se disponível
+    if (branding.showLogo && branding.logoUrl) {
+      try {
+        // Se for URL absoluta ou relativa
+        const logoUrl = branding.logoUrl.startsWith('http') || branding.logoUrl.startsWith('blob:') 
+          ? branding.logoUrl 
+          : window.location.origin + branding.logoUrl;
+        
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = logoUrl;
+        });
+
+        // Calcula proporções mantendo aspect ratio
+        const maxLogoHeight = 35;
+        const maxLogoWidth = 60;
+        
+        // Calcula as dimensões mantendo a proporção
+        const imgRatio = img.width / img.height;
+        let logoWidth = maxLogoWidth;
+        let logoHeight = maxLogoWidth / imgRatio;
+        
+        if (logoHeight > maxLogoHeight) {
+          logoHeight = maxLogoHeight;
+          logoWidth = maxLogoHeight * imgRatio;
+        }
+        
+        // Centraliza a logo horizontalmente
+        const logoX = (pageWidth - logoWidth) / 2;
+        
+        // Adiciona a imagem ao PDF centralizada
+        doc.addImage(img, 'PNG', logoX, yPosition, logoWidth, logoHeight);
+        
+        // Ajusta yPosition baseado na altura da logo
+        yPosition += logoHeight + 10;
+      } catch (error) {
+        // Se falhar ao carregar a logo, continua sem ela
+        console.error('Erro ao carregar logo:', error);
+      }
+    }
+    
+    // Nome da organização centralizado
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    const orgNameWidth = doc.getTextWidth(branding.organizationName);
+    doc.text(branding.organizationName, (pageWidth - orgNameWidth) / 2, yPosition);
+    
+    yPosition += 10;
+    
+    // Título do relatório centralizado
     doc.setFontSize(18);
-    doc.text('Sistema de Cantina - Relatório', margin, 40);
+    doc.setFont(undefined, 'normal');
+    const reportTitle = 'Sistema de Cantina - Relatório de Vendas';
+    const titleWidth = doc.getTextWidth(reportTitle);
+    doc.text(reportTitle, (pageWidth - titleWidth) / 2, yPosition);
+    
+    yPosition += 8;
+    
+    // Data centralizada
     doc.setFontSize(12);
-    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, margin, 50);
+    const dateText = new Date().toLocaleDateString('pt-BR');
+    const dateWidth = doc.getTextWidth(dateText);
+    doc.text(dateText, (pageWidth - dateWidth) / 2, yPosition);
 
-    let yPosition = 65;
+    yPosition += 20;
 
     switch (selectedReport) {
       case 'people-simple':
@@ -219,7 +312,7 @@ export const Reports: React.FC<ReportsProps> = ({ open, onClose }) => {
                   person.customId || '',
                   `R$ ${person.balance.toFixed(2)}`,
                   new Date(purchase.date).toLocaleDateString('pt-BR'),
-                  item.productName,
+                  cleanTextForPDF(item.productName),
                   item.quantity.toString(),
                   `R$ ${item.total.toFixed(2)}`
                 ]);
@@ -243,28 +336,68 @@ export const Reports: React.FC<ReportsProps> = ({ open, onClose }) => {
         doc.text('Lista de Produtos', margin, yPosition);
         yPosition += 10;
 
-        const productsData = products.map(product => [
-          product.name,
-          product.barcode || '',
-          `R$ ${product.price.toFixed(2)}`,
-          product.stock.toString(),
-          `R$ ${(product.price * product.stock).toFixed(2)}`
-        ]);
+        // Calcula vendas por produto
+        const salesByProduct = new Map<string, { quantity: number; total: number }>();
+        people.forEach(person => {
+          person.purchases.forEach(purchase => {
+            purchase.items.forEach(item => {
+              if (salesByProduct.has(item.productId)) {
+                const existing = salesByProduct.get(item.productId)!;
+                existing.quantity += item.quantity;
+                existing.total += item.total;
+              } else {
+                salesByProduct.set(item.productId, {
+                  quantity: item.quantity,
+                  total: item.total
+                });
+              }
+            });
+          });
+        });
+
+        const productsData = products.map(product => {
+          const sales = salesByProduct.get(product.id) || { quantity: 0, total: 0 };
+          return [
+            product.barcode || '-',
+            product.name,
+            product.purchasedQuantity?.toString() || '0',
+            product.costPrice ? `R$ ${product.costPrice.toFixed(2)}` : '-',
+            `R$ ${product.price.toFixed(2)}`,
+            sales.quantity.toString(),
+            `R$ ${sales.total.toFixed(2)}`,
+            product.stock.toString()
+          ];
+        });
 
         autoTable(doc, {
-          head: [['Nome', 'Código', 'Preço', 'Estoque', 'Valor Total']],
+          head: [['Código', 'Produto', 'QTD', 'Custo', 'Preço', 'VEN', 'VTV', 'EST']],
           body: productsData,
           startY: yPosition,
           margin: { left: margin, right: margin },
-          styles: { fontSize: 10 },
-          headStyles: { fillColor: [66, 139, 202] }
+          styles: { 
+            fontSize: 10,  
+            cellPadding: 2,
+          },
+          headStyles: { 
+            fillColor: [66, 139, 202],
+            fontSize: 10,
+            fontStyle: 'bold',
+          },
+          columnStyles: {
+            0: { cellWidth: 30 }, // Código
+            1: { cellWidth: 45 }, // Produto
+            2: { cellWidth: 12 }, // Qtd Comprada
+            3: { cellWidth: 22 }, // Custo
+            4: { cellWidth: 22 }, // Preço
+            5: { cellWidth: 12 }, // Vendidos
+            6: { cellWidth: 22 }, // Valor Total Vendido
+            7: { cellWidth: 12 }  // Estoque
+          }
         });
         break;
 
       case 'sales-summary':
-        doc.setFontSize(14);
-        doc.text('Resumo de Vendas', margin, yPosition);
-        yPosition += 10;
+        
 
         const salesData = new Map<string, { quantity: number; total: number; name: string }>();
         let grandTotal = 0;
@@ -299,7 +432,7 @@ export const Reports: React.FC<ReportsProps> = ({ open, onClose }) => {
 
         const salesTableData = Array.from(salesData.values())
           .map(item => [
-            item.name,
+            cleanTextForPDF(item.name),
             item.quantity.toString(),
             `R$ ${item.total.toFixed(2)}`,
             `R$ ${(item.total / item.quantity).toFixed(2)}`

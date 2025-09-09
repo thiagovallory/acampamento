@@ -31,6 +31,11 @@ export const PersonList: React.FC<PersonListProps> = ({ people, onSelectPerson }
     }).format(value);
   };
 
+  // Ordena as pessoas alfabeticamente pelo nome
+  const sortedPeople = [...people].sort((a, b) => 
+    a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
+  );
+
   if (people.length === 0) {
     return (
       <Box sx={{ 
@@ -51,7 +56,7 @@ export const PersonList: React.FC<PersonListProps> = ({ people, onSelectPerson }
 
   return (
     <Grid container spacing={3}>
-      {people.map((person) => (
+      {sortedPeople.map((person) => (
         <Grid key={person.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
           <Card 
             sx={{ 
